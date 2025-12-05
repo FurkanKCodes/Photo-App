@@ -1,5 +1,17 @@
+# --- Global / OS Files ---
+.DS_Store
+
+# --- Backend (Python/Flask - PhotoGroupApp) ---
 venv/
 __pycache__/
+*.pyc
 .env
-.DS_Store
 uploads/
+
+# --- Frontend (React Native - PhotoAppFrontend) ---
+PhotoAppFrontend/node_modules/
+PhotoAppFrontend/.expo/
+PhotoAppFrontend/dist/
+PhotoAppFrontend/web-build/
+PhotoAppFrontend/npm-debug.log
+PhotoAppFrontend/yarn-error.log
