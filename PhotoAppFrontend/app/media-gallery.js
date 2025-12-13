@@ -62,7 +62,7 @@ export default function MediaGalleryScreen() {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All, 
       allowsMultipleSelection: true, 
-      quality: 1.0, // Best quality upload
+      quality: 1.0, 
     });
 
     if (!result.canceled) {
@@ -104,12 +104,11 @@ export default function MediaGalleryScreen() {
     }
   };
 
-  // --- REPORT LOGIC (UPDATED) ---
+  // --- REPORT LOGIC ---
   const handleReport = () => {
     const currentMedia = photos[currentIndex];
     if (!currentMedia) return;
 
-    // Platform specific UI for input
     if (Platform.OS === 'ios') {
         Alert.prompt(
             "İçeriği Bildir",
@@ -121,7 +120,6 @@ export default function MediaGalleryScreen() {
             "plain-text"
         );
     } else {
-        // Android doesn't support Alert.prompt natively
         Alert.alert(
             "İçeriği Bildir",
             "Bildirim sebebini seçiniz:",
@@ -135,7 +133,7 @@ export default function MediaGalleryScreen() {
   };
 
   const submitReport = async (photoId, reason) => {
-    if (!reason) reason = "Belirtilmedi"; // Default reason if empty
+    if (!reason) reason = "Belirtilmedi"; 
     
     try {
         const response = await fetch(`${API_URL}/report-content`, {
@@ -307,17 +305,20 @@ export default function MediaGalleryScreen() {
         </TouchableOpacity>
       </View>
 
-      {loading ? (
-        <ActivityIndicator size="large" color="#007AFF" style={{ marginTop: 50 }} />
-      ) : (
-        <FlatList
-            data={photos}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={renderGridItem}
-            numColumns={4}
-            contentContainerStyle={mediaStyles.gridContainer}
-        />
-      )}
+      {/* DÜZELTME: Liste konteynerına flex: 1 ve padding eklendi */}
+      <View style={{ flex: 1 }}> 
+        {loading ? (
+            <ActivityIndicator size="large" color="#007AFF" style={{ marginTop: 50 }} />
+        ) : (
+            <FlatList
+                data={photos}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={renderGridItem}
+                numColumns={4}
+                contentContainerStyle={{ paddingBottom: 100 }} 
+            />
+        )}
+      </View>
 
       <Modal visible={isViewerVisible} transparent={true} animationType="fade">
         <View style={mediaStyles.fullScreenContainer}>

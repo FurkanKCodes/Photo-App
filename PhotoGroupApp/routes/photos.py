@@ -106,7 +106,7 @@ def upload_photo():
         return jsonify({"error": "File type not allowed"}), 400
 
 # ==========================================
-# GET GROUP PHOTOS
+# GET GROUP PHOTOS (UPDATED FOR BLOCKING)
 # ==========================================
 @photos_bp.route('/group-photos', methods=['GET'])
 def get_group_photos():
@@ -131,6 +131,8 @@ def get_group_photos():
             return jsonify({"error": "Unauthorized"}), 403
 
         # FETCH PHOTOS 
+        # UPDATED SQL: Exclude photos from users I blocked OR users who blocked me
+        # Also exclude photos explicitly hidden in hidden_photos table (for "delete for me" feature)
         sql = """
             SELECT photos.id, photos.file_name, photos.upload_date, 
                    photos.user_id as uploader_id, 
@@ -138,12 +140,24 @@ def get_group_photos():
             FROM photos 
             JOIN users ON photos.user_id = users.id 
             WHERE photos.group_id = %s 
+            
+            -- Exclude explicitly hidden photos (Delete for me)
             AND photos.id NOT IN (
                 SELECT photo_id FROM hidden_photos WHERE user_id = %s
             )
+            
+            -- Exclude photos from blocked/blocking users
+            AND photos.user_id NOT IN (
+                -- Users I blocked
+                SELECT blocked_id FROM blocked_users WHERE blocker_id = %s
+                UNION
+                -- Users who blocked me
+                SELECT blocker_id FROM blocked_users WHERE blocked_id = %s
+            )
+            
             ORDER BY photos.upload_date DESC
         """
-        cursor.execute(sql, (group_id, user_id))
+        cursor.execute(sql, (group_id, user_id, user_id, user_id))
         photos = cursor.fetchall()
 
         photo_list = []

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { 
   View, Text, Image, TouchableOpacity, StatusBar, 
-  ScrollView, ActivityIndicator, Modal, FlatList, TextInput, Alert, KeyboardAvoidingView, Platform, Switch, TouchableWithoutFeedback 
+  ScrollView, ActivityIndicator, Modal, TextInput, Alert, KeyboardAvoidingView, Platform, Switch 
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker'; 
+import * as Clipboard from 'expo-clipboard'; // Panoya kopyalama için
 import API_URL from '../config';
 import groupDetailsStyles from '../styles/groupDetailsStyles';
 
@@ -35,19 +36,16 @@ export default function GroupDetailsScreen() {
   const [hasChanges, setHasChanges] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Admin Action Modal States
-  const [actionModalVisible, setActionModalVisible] = useState(false);
-  const [selectedMember, setSelectedMember] = useState(null);
+  // MENU POPUP STATE
+  const [activeMenuMemberId, setActiveMenuMemberId] = useState(null);
 
   // --- FETCH DATA ---
   const fetchData = async () => {
     try {
-      // 1. Get Group Details
       const groupRes = await fetch(`${API_URL}/get-group-details?group_id=${groupId}`, { headers: { 'ngrok-skip-browser-warning': 'true' }});
       const groupData = await groupRes.json();
       if (groupRes.ok) setGroupDetails(groupData);
 
-      // 2. Get Members & Check Admin Status
       const membersRes = await fetch(`${API_URL}/get-group-members?group_id=${groupId}&current_user_id=${userId}`, { headers: { 'ngrok-skip-browser-warning': 'true' }});
       const membersData = await membersRes.json();
       if (membersRes.ok) {
@@ -56,7 +54,6 @@ export default function GroupDetailsScreen() {
         setIsAdmin(currentUser?.is_admin === 1);
       }
 
-      // 3. Get Requests
       const reqRes = await fetch(`${API_URL}/get-group-requests?group_id=${groupId}`, { headers: { 'ngrok-skip-browser-warning': 'true' }});
       if (reqRes.ok) setRequests(await reqRes.json());
 
@@ -71,28 +68,100 @@ export default function GroupDetailsScreen() {
     if (groupId) fetchData();
   }, [groupId, userId]);
 
-  // --- HANDLERS: ADMIN ACTIONS ---
-  
-  const onPromotePress = () => {
-      setActionModalVisible(false); 
+  // --- COPY GROUP CODE ---
+  const copyGroupCode = async () => {
+      if (groupDetails?.group_code) {
+          await Clipboard.setStringAsync(groupDetails.group_code);
+          Alert.alert("Başarılı", "Grup kodu kopyalandı!");
+      }
+  };
+
+  // --- ACTION HANDLERS ---
+  const handleBlockUser = (targetMember) => {
+    setActiveMenuMemberId(null);
+    Alert.alert(
+        "Kişiyi Engelle",
+        "Kişiyi engellemek istediğinize emin misiniz? Karşılıklı olarak birbirinizin gönderdiği medyalara ulaşamayacaksınız.",
+        [
+            { text: "Hayır", style: "cancel" },
+            { 
+                text: "Evet", 
+                style: "destructive",
+                onPress: async () => {
+                    try {
+                        const response = await fetch(`${API_URL}/block-user`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+                            body: JSON.stringify({
+                                blocker_id: userId,
+                                blocked_id: targetMember.id
+                            })
+                        });
+                        if (response.ok) {
+                            Alert.alert("Başarılı", "Kişi engellendi.");
+                            fetchData();
+                        } else {
+                            Alert.alert("Hata", "İşlem başarısız.");
+                        }
+                    } catch (e) { console.error(e); }
+                }
+            }
+        ]
+    );
+  };
+
+  const handleUnblockUser = (targetMember) => {
+    setActiveMenuMemberId(null);
+    Alert.alert(
+        "Engeli Kaldır",
+        "Kişinin engelini kaldırmak istediğinize emin misiniz?",
+        [
+            { text: "Hayır", style: "cancel" },
+            { 
+                text: "Evet", 
+                onPress: async () => {
+                    try {
+                        const response = await fetch(`${API_URL}/unblock-user`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+                            body: JSON.stringify({
+                                blocker_id: userId,
+                                blocked_id: targetMember.id
+                            })
+                        });
+                        if (response.ok) {
+                            Alert.alert("Başarılı", "Engel kaldırıldı.");
+                            fetchData();
+                        } else {
+                            Alert.alert("Hata", "İşlem başarısız.");
+                        }
+                    } catch (e) { console.error(e); }
+                }
+            }
+        ]
+    );
+  };
+
+  const handlePromoteUser = (targetMember) => {
+      setActiveMenuMemberId(null);
       Alert.alert(
           "Onay",
           "Yönetici yapmak istediğinizden emin misiniz?",
           [
               { text: "Hayır", style: "cancel" },
-              { text: "Evet", onPress: () => performMemberAction(selectedMember.id, 'promote') }
+              { text: "Evet", onPress: () => performMemberAction(targetMember.id, 'promote') }
           ]
       );
   };
 
-  const onKickPress = () => {
-      setActionModalVisible(false);
+  const handleKickUser = (targetMember) => {
+      setActiveMenuMemberId(null);
       Alert.alert(
           "Onay",
           "Gruptan atmak istediğinize emin misiniz?",
           [
               { text: "Hayır", style: "cancel" },
-              { text: "Evet", onPress: () => performMemberAction(selectedMember.id, 'kick') }
+              { text: "Evet", onPress: () => performMemberAction(targetMember.id, 'kick') }
           ]
       );
   };
@@ -118,7 +187,6 @@ export default function GroupDetailsScreen() {
       } catch(e) { console.error(e); }
   };
 
-  // --- HANDLERS: REQUESTS ---
   const handleRequestAction = async (targetId, action) => {
       if(!isAdmin) { Alert.alert("Yetkisiz", "Sadece yöneticiler isteklere cevap verebilir"); return; }
       try {
@@ -131,7 +199,6 @@ export default function GroupDetailsScreen() {
       } catch(e) { console.error(e); }
   };
 
-  // --- HANDLERS: TOGGLE JOINING ---
   const handleToggleJoining = async (value) => {
       if(!isAdmin) { Alert.alert("Yetkisiz", "Sadece yöneticiler değiştirebilir"); return; }
       try {
@@ -144,7 +211,6 @@ export default function GroupDetailsScreen() {
       } catch(e) { console.error(e); }
   };
 
-  // --- HANDLERS: LEAVE GROUP ---
   const handleLeaveGroup = () => {
       Alert.alert("Gruptan Ayrıl", "Ayrılmak istediğinize emin misiniz?", [
           { text: "Vazgeç", style: "cancel" },
@@ -164,7 +230,7 @@ export default function GroupDetailsScreen() {
       ]);
   };
 
-  // --- EDIT GROUP LOGIC ---
+  // --- EDIT GROUP ---
   const handleEditGroupPress = () => {
     setEditName(groupDetails?.group_name || '');
     setEditImage(null);
@@ -192,7 +258,6 @@ export default function GroupDetailsScreen() {
       } catch (error) { Alert.alert("Hata", "Sunucu hatası."); } finally { setSaving(false); } 
   };
 
-  // --- FULL SCREEN IMAGE HANDLER ---
   const handleImagePress = (imageUrl) => { 
     if (imageUrl) { 
         setSelectedImage({ uri: imageUrl }); 
@@ -200,59 +265,76 @@ export default function GroupDetailsScreen() {
     } 
   };
 
-  // --- RENDER MEMBER ITEM (Updated Logic) ---
-  const renderMemberItem = ({ item }) => {
+  // --- RENDER HELPERS ---
+  const renderMemberItem = (item) => {
     const thumbUrl = item.thumbnail_url || item.profile_url;
-    // We need the full resolution image for the modal, fallback to thumb if missing
     const fullImageUrl = item.profile_url || item.thumbnail_url;
     const memberPic = thumbUrl ? { uri: thumbUrl } : defaultUserImage;
     const isCurrentUser = item.id.toString() === userId.toString();
+    const isMenuOpen = activeMenuMemberId === item.id;
+    const isBlocked = item.is_blocked_by_me === 1;
 
-    // HANDLER 1: Profile Picture Click
-    const onProfilePicPress = () => {
-        // Logic: Only zoom if it's NOT the current user
-        if (!isCurrentUser && fullImageUrl) {
-            handleImagePress(fullImageUrl);
-        }
-    };
-
-    // HANDLER 2: Name/Row Click
-    const onNamePress = () => {
-        // Logic: Only Admin can open menu AND cannot open menu for themselves
-        if (isAdmin && !isCurrentUser) {
-            setSelectedMember(item);
-            setActionModalVisible(true);
-        }
+    const toggleMenu = () => {
+        if (isMenuOpen) setActiveMenuMemberId(null);
+        else setActiveMenuMemberId(item.id);
     };
 
     return (
-      <View style={groupDetailsStyles.memberItem}>
-        {/* 1. Profile Picture Area */}
-        <TouchableOpacity onPress={onProfilePicPress}>
+      <View key={item.id} style={[groupDetailsStyles.memberItem, isMenuOpen && { zIndex: 1000, elevation: 1000 }]}>
+        <TouchableOpacity onPress={() => !isCurrentUser && fullImageUrl && handleImagePress(fullImageUrl)}>
             <Image source={memberPic} style={groupDetailsStyles.memberImage} />
         </TouchableOpacity>
 
-        {/* 2. Name & Info Area */}
-        <TouchableOpacity 
-            style={groupDetailsStyles.memberInfo} 
-            onPress={onNamePress}
-            // Visual Feedback: Show touch opacity only if action is available
-            activeOpacity={isAdmin && !isCurrentUser ? 0.2 : 1} 
-        >
+        <View style={groupDetailsStyles.memberInfo}>
           <Text style={groupDetailsStyles.memberName}>
-            {item.username} {isCurrentUser && <Text style={groupDetailsStyles.youTag}>(Sen)</Text>}
+            {item.username} 
+            {isCurrentUser && <Text style={groupDetailsStyles.youTag}> (Sen)</Text>}
+            {isBlocked && <Text style={{color: 'red', fontSize: 14}}> (Engellendi)</Text>}
           </Text>
           {item.is_admin === 1 && <Text style={groupDetailsStyles.adminTag}>Yönetici</Text>}
-        </TouchableOpacity>
+        </View>
+
+        {!isCurrentUser && (
+            <View style={{ position: 'relative' }}>
+                <TouchableOpacity onPress={toggleMenu} style={groupDetailsStyles.moreButton}>
+                    <Ionicons name="ellipsis-vertical" size={24} color="#888" />
+                </TouchableOpacity>
+
+                {/* POPUP MENU */}
+                {isMenuOpen && (
+                    <View style={groupDetailsStyles.popupMenu}>
+                        {isBlocked ? (
+                             <TouchableOpacity onPress={() => handleUnblockUser(item)} style={groupDetailsStyles.popupMenuItem}>
+                                <Text style={groupDetailsStyles.popupMenuText}>Engeli Kaldır</Text>
+                             </TouchableOpacity>
+                        ) : (
+                             <TouchableOpacity onPress={() => handleBlockUser(item)} style={groupDetailsStyles.popupMenuItem}>
+                                <Text style={groupDetailsStyles.popupMenuText}>Kişiyi Engelle</Text>
+                             </TouchableOpacity>
+                        )}
+
+                        {isAdmin && (
+                            <>
+                                <TouchableOpacity onPress={() => handleKickUser(item)} style={groupDetailsStyles.popupMenuItem}>
+                                    <Text style={groupDetailsStyles.popupMenuText}>Gruptan At</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity onPress={() => handlePromoteUser(item)} style={[groupDetailsStyles.popupMenuItem, { borderBottomWidth: 0 }]}>
+                                    <Text style={groupDetailsStyles.popupMenuText}>Yönetici Yap</Text>
+                                </TouchableOpacity>
+                            </>
+                        )}
+                    </View>
+                )}
+            </View>
+        )}
       </View>
     );
   };
 
-  const renderRequestItem = ({ item }) => {
-      const thumbUrl = item.thumbnail_url;
-      const pic = thumbUrl ? { uri: thumbUrl } : defaultUserImage;
+  const renderRequestItem = (item) => {
+      const pic = item.thumbnail_url ? { uri: item.thumbnail_url } : defaultUserImage;
       return (
-          <View style={groupDetailsStyles.requestItem}>
+          <View key={item.request_id} style={groupDetailsStyles.requestItem}>
               <View style={{flexDirection: 'row', alignItems: 'center', flex: 1}}>
                   <Image source={pic} style={groupDetailsStyles.requestImage} />
                   <Text style={groupDetailsStyles.requestName}>{item.username}</Text>
@@ -276,6 +358,7 @@ export default function GroupDetailsScreen() {
   const isJoiningOpen = groupDetails?.is_joining_active === 1;
 
   return (
+    // SCROLL FIX: Removed global TouchableWithoutFeedback wrapper
     <View style={groupDetailsStyles.container}>
       <StatusBar backgroundColor="#007AFF" barStyle="light-content" />
 
@@ -290,13 +373,25 @@ export default function GroupDetailsScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView>
-        {/* GROUP INFO */}
+      <ScrollView 
+        contentContainerStyle={{ paddingBottom: 150 }} 
+        // scrollEnabled={true} -> Scroll is enabled by default, no need to lock it anymore
+      > 
+        {/* 1. GROUP INFO */}
         <View style={groupDetailsStyles.groupInfoContainer}>
             <TouchableOpacity onPress={() => groupOriginal && handleImagePress(groupOriginal)}>
                 <Image source={groupThumb ? { uri: groupThumb } : defaultGroupImage} style={groupDetailsStyles.largeGroupImage} />
             </TouchableOpacity>
             <Text style={groupDetailsStyles.groupNameText}>{groupDetails?.group_name}</Text>
+            
+            {/* GROUP CODE SECTION (NEW) */}
+            <TouchableOpacity onPress={copyGroupCode} style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 8 }}>
+                <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#000', marginRight: 5 }}>
+                    {groupDetails?.group_code}
+                </Text>
+                <Ionicons name="copy-outline" size={18} color="#000" />
+            </TouchableOpacity>
+
             {isAdmin && (
                 <TouchableOpacity onPress={handleEditGroupPress} style={groupDetailsStyles.editGroupButton}>
                     <Text style={groupDetailsStyles.editGroupText}>Grubu Düzenle</Text>
@@ -304,16 +399,13 @@ export default function GroupDetailsScreen() {
             )}
         </View>
 
-        {/* MEMBERS LIST */}
+        {/* 2. MEMBERS LIST */}
         <Text style={groupDetailsStyles.membersTitle}>Üyeler</Text>
-        <FlatList
-            data={members}
-            keyExtractor={(item) => item.id.toString()}
-            renderItem={renderMemberItem}
-            scrollEnabled={false} 
-        />
+        <View>
+            {members.map(member => renderMemberItem(member))}
+        </View>
 
-        {/* REQUESTS & TOGGLE SECTION */}
+        {/* 3. REQUESTS HEADER & TOGGLE */}
         <View style={groupDetailsStyles.sectionHeader}>
             <Text style={groupDetailsStyles.membersTitle}>İstekler</Text>
             <View style={groupDetailsStyles.toggleContainer}>
@@ -332,26 +424,29 @@ export default function GroupDetailsScreen() {
             </View>
         </View>
 
-        {requests.length > 0 ? (
-            <FlatList
-                data={requests}
-                keyExtractor={(item) => item.request_id.toString()}
-                renderItem={renderRequestItem}
-                scrollEnabled={false}
-            />
-        ) : (
-            <Text style={groupDetailsStyles.emptyText}>Şuan bir istek bulunmamaktadır</Text>
-        )}
+        {/* 4. REQUESTS LIST */}
+        <View>
+            {requests.length > 0 ? (
+                requests.map(req => renderRequestItem(req))
+            ) : (
+                <Text style={groupDetailsStyles.emptyText}>Şuan bir istek bulunmamaktadır</Text>
+            )}
+        </View>
 
-        {/* LEAVE BUTTON */}
-        <TouchableOpacity style={groupDetailsStyles.leaveButton} onPress={handleLeaveGroup}>
-            <Ionicons name="log-out-outline" size={24} color="#fff" />
-            <Text style={groupDetailsStyles.leaveText}>Gruptan Ayrıl</Text>
-        </TouchableOpacity>
-        <View style={{height: 50}} /> 
+        {/* 5. LEAVE BUTTON */}
+        <View style={{ alignItems: 'flex-end', marginTop: 20, marginRight: 20 }}>
+            <TouchableOpacity 
+                style={[groupDetailsStyles.leaveButton, { marginHorizontal: 0, width: 180 }]} 
+                onPress={handleLeaveGroup}
+            >
+                <Ionicons name="log-out-outline" size={24} color="#fff" />
+                <Text style={groupDetailsStyles.leaveText}>Gruptan Ayrıl</Text>
+            </TouchableOpacity>
+        </View>
+        
       </ScrollView>
 
-      {/* --- FULL SCREEN IMAGE MODAL --- */}
+      {/* --- MODALS --- */}
       <Modal visible={isImageModalVisible} transparent={true} animationType="fade" onRequestClose={() => setImageModalVisible(false)}>
         <View style={groupDetailsStyles.modalContainer}>
             <TouchableOpacity style={groupDetailsStyles.modalCloseButton} onPress={() => setImageModalVisible(false)}>
@@ -361,7 +456,6 @@ export default function GroupDetailsScreen() {
         </View>
       </Modal>
 
-      {/* --- EDIT GROUP MODAL --- */}
       <Modal visible={editModalVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setEditModalVisible(false)}>
         <View style={groupDetailsStyles.editModalContainer}>
             <View style={groupDetailsStyles.editModalHeader}>
@@ -389,30 +483,6 @@ export default function GroupDetailsScreen() {
             </KeyboardAvoidingView>
         </View>
       </Modal>
-
-      {/* --- ADMIN ACTION CUSTOM MODAL (White Popup) --- */}
-      <Modal visible={actionModalVisible} transparent={true} animationType="fade" onRequestClose={() => setActionModalVisible(false)}>
-          <TouchableWithoutFeedback onPress={() => setActionModalVisible(false)}>
-              <View style={groupDetailsStyles.actionModalOverlay}>
-                  <TouchableWithoutFeedback>
-                      <View style={groupDetailsStyles.actionModalContent}>
-                          <Text style={groupDetailsStyles.actionModalTitle}>{selectedMember?.username}</Text>
-                          
-                          <TouchableOpacity style={groupDetailsStyles.actionButton} onPress={onPromotePress}>
-                              <Text style={groupDetailsStyles.actionButtonText}>Yönetici Yap</Text>
-                          </TouchableOpacity>
-                          
-                          <View style={groupDetailsStyles.separator} />
-                          
-                          <TouchableOpacity style={groupDetailsStyles.actionButton} onPress={onKickPress}>
-                              <Text style={[groupDetailsStyles.actionButtonText, {color: 'red'}]}>Gruptan At</Text>
-                          </TouchableOpacity>
-                      </View>
-                  </TouchableWithoutFeedback>
-              </View>
-          </TouchableWithoutFeedback>
-      </Modal>
-
     </View>
   );
 }

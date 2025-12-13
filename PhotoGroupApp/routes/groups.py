@@ -176,6 +176,119 @@ def join_group():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 # ==========================================
+# BLOCK USER (NEW)
+# ==========================================
+@groups_bp.route('/block-user', methods=['POST'])
+def block_user():
+    data = request.json
+    blocker_id = data.get('blocker_id')
+    blocked_id = data.get('blocked_id')
+
+    if not blocker_id or not blocked_id:
+        return jsonify({"error": "Missing IDs"}), 400
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # 1. Insert into blocked_users
+        sql_block = "INSERT IGNORE INTO blocked_users (blocker_id, blocked_id) VALUES (%s, %s)"
+        cursor.execute(sql_block, (blocker_id, blocked_id))
+
+        # 2. Hide Blocked User's photos from Blocker
+        # (Find all photos owned by blocked_id, insert into hidden_photos for blocker_id)
+        sql_hide_1 = """
+            INSERT IGNORE INTO hidden_photos (user_id, photo_id)
+            SELECT %s, id FROM photos WHERE user_id = %s
+        """
+        cursor.execute(sql_hide_1, (blocker_id, blocked_id))
+
+        # 3. Hide Blocker's photos from Blocked User (Mutual)
+        # (Find all photos owned by blocker_id, insert into hidden_photos for blocked_id)
+        sql_hide_2 = """
+            INSERT IGNORE INTO hidden_photos (user_id, photo_id)
+            SELECT %s, id FROM photos WHERE user_id = %s
+        """
+        cursor.execute(sql_hide_2, (blocked_id, blocker_id))
+
+        conn.commit()
+        cursor.close(); conn.close()
+        return jsonify({"message": "User blocked successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# ==========================================
+# UNBLOCK USER (NEW)
+# ==========================================
+@groups_bp.route('/unblock-user', methods=['POST'])
+def unblock_user():
+    data = request.json
+    blocker_id = data.get('blocker_id')
+    blocked_id = data.get('blocked_id')
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # 1. Remove from blocked_users
+        cursor.execute("DELETE FROM blocked_users WHERE blocker_id = %s AND blocked_id = %s", (blocker_id, blocked_id))
+
+        # 2. Remove hidden entries (Make photos visible again mutually)
+        
+        # Make blocked_id's photos visible to blocker_id
+        sql_unhide_1 = """
+            DELETE FROM hidden_photos 
+            WHERE user_id = %s 
+            AND photo_id IN (SELECT id FROM photos WHERE user_id = %s)
+        """
+        cursor.execute(sql_unhide_1, (blocker_id, blocked_id))
+
+        # Make blocker_id's photos visible to blocked_id
+        sql_unhide_2 = """
+            DELETE FROM hidden_photos 
+            WHERE user_id = %s 
+            AND photo_id IN (SELECT id FROM photos WHERE user_id = %s)
+        """
+        cursor.execute(sql_unhide_2, (blocked_id, blocker_id))
+
+        conn.commit()
+        cursor.close(); conn.close()
+        return jsonify({"message": "User unblocked"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# ==========================================
+# GET BLOCKED USERS (NEW)
+# ==========================================
+@groups_bp.route('/get-blocked-users', methods=['GET'])
+def get_blocked_users():
+    user_id = request.args.get('user_id')
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        sql = """
+            SELECT b.blocked_id, u.username, u.profile_image, b.created_at
+            FROM blocked_users b
+            JOIN users u ON b.blocked_id = u.id
+            WHERE b.blocker_id = %s
+            ORDER BY b.created_at DESC
+        """
+        cursor.execute(sql, (user_id,))
+        users = cursor.fetchall()
+        
+        for u in users:
+            if u['profile_image']:
+                 u['thumbnail_url'] = url_for('groups.uploaded_file', filename=f"thumb_{u['profile_image']}", _external=True)
+            else:
+                 u['thumbnail_url'] = None
+
+        cursor.close(); conn.close()
+        return jsonify(users), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# ==========================================
 # TOGGLE JOINING STATUS
 # ==========================================
 @groups_bp.route('/toggle-joining', methods=['POST'])
@@ -412,17 +525,39 @@ def get_user_groups():
 def get_group_members():
     group_id = request.args.get('group_id')
     current_user_id = request.args.get('current_user_id')
+    
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        sql = "SELECT u.id, u.username, u.profile_image, gm.is_admin, CASE WHEN u.id = %s THEN 0 ELSE 1 END as sort_order FROM groups_members gm JOIN users u ON gm.user_id = u.id WHERE gm.group_id = %s ORDER BY sort_order ASC, u.username ASC"
-        cursor.execute(sql, (current_user_id, group_id))
+        
+        # Modified Query:
+        # 1. Exclude members who BLOCKED the current_user (Ghosting)
+        # 2. Add is_blocked_by_me column to check if current_user BLOCKED the member
+        sql = """
+            SELECT 
+                u.id, 
+                u.username, 
+                u.profile_image, 
+                gm.is_admin, 
+                CASE WHEN u.id = %s THEN 0 ELSE 1 END as sort_order,
+                CASE WHEN EXISTS (SELECT 1 FROM blocked_users WHERE blocker_id = %s AND blocked_id = u.id) THEN 1 ELSE 0 END as is_blocked_by_me
+            FROM groups_members gm 
+            JOIN users u ON gm.user_id = u.id 
+            WHERE gm.group_id = %s 
+            AND u.id NOT IN (
+                SELECT blocker_id FROM blocked_users WHERE blocked_id = %s
+            )
+            ORDER BY sort_order ASC, u.username ASC
+        """
+        cursor.execute(sql, (current_user_id, current_user_id, group_id, current_user_id))
         members = cursor.fetchall()
+        
         for m in members:
             if m['profile_image']:
                 m['profile_url'] = url_for('groups.uploaded_file', filename=m['profile_image'], _external=True)
                 m['thumbnail_url'] = url_for('groups.uploaded_file', filename=f"thumb_{m['profile_image']}", _external=True)
             else: m['profile_url'] = None; m['thumbnail_url'] = None
+            
         cursor.close(); conn.close()
         return jsonify(members), 200
     except Exception as e: return jsonify({"error": str(e)}), 500
