@@ -7,7 +7,7 @@ const ITEM_SIZE = width / COLUMN_COUNT;
 const mediaStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff', // White background
+    backgroundColor: '#fff', 
   },
   // --- HEADER ---
   headerContainer: {
@@ -15,7 +15,7 @@ const mediaStyles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 65 : StatusBar.currentHeight + 25,
     paddingBottom: 15,
     paddingHorizontal: 15,
-    backgroundColor: '#007AFF', // Theme Blue
+    backgroundColor: '#007AFF', 
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -25,6 +25,7 @@ const mediaStyles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 2,
+    minHeight: 80,
   },
   backButton: {
     padding: 5,
@@ -46,10 +47,13 @@ const mediaStyles = StyleSheet.create({
     width: ITEM_SIZE,
     height: ITEM_SIZE,
     borderWidth: 1,
-    borderColor: '#fff', // White grid lines
+    borderColor: '#fff', 
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#000', 
+  },
+  mediaItemSelected: {
+      opacity: 0.7, 
   },
   imageThumbnail: {
     width: '100%',
@@ -61,14 +65,22 @@ const mediaStyles = StyleSheet.create({
     opacity: 0.8,
     alignSelf: 'center',
   },
+  // Checkbox Overlay
+  selectionOverlay: {
+      position: 'absolute',
+      top: 5,
+      left: 5,
+      zIndex: 5,
+      backgroundColor: 'rgba(0,0,0,0.3)', 
+      borderRadius: 4,
+  },
 
   // --- FULL SCREEN MODAL ---
   fullScreenContainer: {
     flex: 1,
-    backgroundColor: '#000', // Black background for viewer
+    backgroundColor: '#000', 
     justifyContent: 'center',
   },
-  // Top Controls (Back & Options)
   topControls: {
     position: 'absolute',
     top: Platform.OS === 'ios' ? 60 : 40,
@@ -84,8 +96,6 @@ const mediaStyles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.4)',
     borderRadius: 20,
   },
-  
-  // Content Wrapper
   fullScreenContent: {
     width: width,
     height: height,
@@ -99,10 +109,8 @@ const mediaStyles = StyleSheet.create({
   },
   fullVideo: {
     width: width,
-    height: height * 0.6, // Aspect ratio adjustment
+    height: height * 0.6, 
   },
-
-  // Bottom Info
   bottomInfo: {
     position: 'absolute',
     bottom: 40,
@@ -123,8 +131,6 @@ const mediaStyles = StyleSheet.create({
     color: '#ccc',
     fontSize: 12,
   },
-
-  // --- OPTIONS MENU (Pop-up) ---
   optionsMenu: {
     position: 'absolute',
     top: Platform.OS === 'ios' ? 110 : 90,

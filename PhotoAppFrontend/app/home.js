@@ -7,6 +7,8 @@ import {
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router'; 
 import { Ionicons } from '@expo/vector-icons'; 
 import * as ImagePicker from 'expo-image-picker'; 
+// EKLENDİ: İnternet kontrolü için kütüphane
+import NetInfo from '@react-native-community/netinfo';
 import API_URL from '../config'; 
 import homeStyles from '../styles/homeStyles'; 
 
@@ -131,8 +133,15 @@ export default function HomeScreen() {
     }
   };
 
-  // --- KAMERA YÖNLENDİRME DÜZELTİLDİ ---
-  const handleCameraAction = (groupId) => {
+  // --- KAMERA YÖNLENDİRME (GÜNCELLENDİ: İNTERNET KONTROLÜ) ---
+  const handleCameraAction = async (groupId) => {
+      // 1. İNTERNET KONTROLÜ
+      const netState = await NetInfo.fetch();
+      if (!netState.isConnected || !netState.isInternetReachable) {
+          Alert.alert("Bağlantı Hatası", "Lütfen bir internete bağlı olduğunuzdan emin olun.");
+          return; // Fonksiyonu burada durdur
+      }
+
       // ID kontrolü
       if (!groupId || !userId) {
           Alert.alert("Hata", "Grup veya kullanıcı bilgisi eksik.");

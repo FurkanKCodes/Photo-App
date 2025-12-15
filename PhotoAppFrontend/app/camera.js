@@ -33,8 +33,14 @@ export default function CameraScreen() {
   
   const [zoom, setZoom] = useState(initialExpoZoom); 
   
-  // SADECE BURASI DEĞİŞTİ: Başlangıçta ekrana yazan değerden 0.2 çıkarıldı.
+  // UI OFFSET: Gerçek değerden 0.2 çıkar
   const [currentZoomLabel, setCurrentZoomLabel] = useState(START_ZOOM - 0.2);
+
+  // Mod değiştiğinde (Video/Foto) zoom'u tekrar 1.2x (UI: 1.0x) ayarına zorla
+  useEffect(() => {
+      setZoom(initialExpoZoom);
+      setCurrentZoomLabel(START_ZOOM - 0.2);
+  }, [mode]);
 
   // Pinch (Kıstırma) Hareketi Değişkenleri
   const baseZoom = useRef(initialExpoZoom);
@@ -70,7 +76,7 @@ export default function CameraScreen() {
       const touch2 = e.nativeEvent.touches[1];
       const distance = Math.hypot(touch1.pageX - touch2.pageX, touch1.pageY - touch2.pageY);
       
-      // Hassasiyet ayarı (500'e bölerek yumuşatıyoruz)
+      // Hassasiyet ayarı
       const scaleFactor = (distance - initialPinchDistance.current) / 500; 
       
       let newExpoZoom = baseZoom.current + scaleFactor;
@@ -85,7 +91,7 @@ export default function CameraScreen() {
       // Önce gerçek değeri buluyoruz
       const realZoomValue = (newExpoZoom * (MAX_ZOOM - MIN_ZOOM)) + MIN_ZOOM;
       
-      // SADECE BURASI DEĞİŞTİ: UI'da göstermeden önce 0.2 çıkarıyoruz.
+      // UI'da göstermeden önce 0.2 çıkarıyoruz.
       setCurrentZoomLabel(realZoomValue - 0.2);
     }
   };
