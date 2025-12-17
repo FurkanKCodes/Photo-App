@@ -57,7 +57,36 @@ const cameraStyles = StyleSheet.create({
     borderRadius: 22,
   },
 
-  // --- RECORDING TIMER ---
+  // --- FLASH MENU ---
+  flashMenu: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: 25,
+    paddingHorizontal: 5,
+    marginRight: 10, // Ana butona yapışık olmasın
+  },
+  flashBtn: {
+    padding: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  autoText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    position: 'absolute',
+    bottom: 6,
+    right: 4,
+  },
+  mainAutoText: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#fff',
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+  },
+
+  // --- TIMER ---
   timerOverlay: {
     position: 'absolute',
     top: TOP_PADDING + 60,
@@ -80,23 +109,6 @@ const cameraStyles = StyleSheet.create({
   timerText: {
     color: '#fff',
     fontWeight: 'bold',
-  },
-
-  // --- ZOOM INDICATOR (New) ---
-  zoomIndicatorContainer: {
-    position: 'absolute',
-    bottom: BOTTOM_PADDING + 130, // Just above mode selector
-    alignSelf: 'center',
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 15,
-    zIndex: 15,
-  },
-  zoomText: {
-    color: '#FFD700', // Gold color for visibility
-    fontWeight: 'bold',
-    fontSize: 16,
   },
 
   // --- BOTTOM CONTROLS ---

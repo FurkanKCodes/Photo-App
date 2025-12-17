@@ -32,12 +32,13 @@ def create_thumbnail(image_path, filename):
         return None
 
 # ==========================================
-# CREATE GROUP
+# CREATE GROUP (Updated with Description)
 # ==========================================
 @groups_bp.route('/create-group', methods=['POST'])
 def create_group():
     user_id = request.form.get('user_id')
     group_name = request.form.get('group_name')
+    description = request.form.get('description') # New: Description
 
     if not user_id or not group_name:
         return jsonify({"error": "Missing data"}), 400
@@ -63,9 +64,9 @@ def create_group():
             cursor.execute("SELECT id FROM groups_table WHERE group_code = %s", (new_code,))
             if not cursor.fetchone(): break 
 
-        # Default is_joining_active = 1
-        sql_group = "INSERT INTO groups_table (group_code, created_by, group_name, picture, is_joining_active) VALUES (%s, %s, %s, %s, 1)"
-        cursor.execute(sql_group, (new_code, user_id, group_name, picture_filename))
+        # SQL Updated: Added description column
+        sql_group = "INSERT INTO groups_table (group_code, created_by, group_name, description, picture, is_joining_active) VALUES (%s, %s, %s, %s, %s, 1)"
+        cursor.execute(sql_group, (new_code, user_id, group_name, description, picture_filename))
         group_id = cursor.lastrowid 
 
         sql_member = "INSERT INTO groups_members (user_id, group_id, is_admin) VALUES (%s, %s, %s)"
@@ -80,13 +81,14 @@ def create_group():
         return jsonify({"error": str(e)}), 500
 
 # ==========================================
-# EDIT GROUP
+# EDIT GROUP (Updated: Description & Logic Fix)
 # ==========================================
 @groups_bp.route('/edit-group', methods=['POST'])
 def edit_group():
     user_id = request.form.get('user_id')
     group_id = request.form.get('group_id')
     group_name = request.form.get('group_name')
+    description = request.form.get('description') # New: Description
 
     if not user_id or not group_id: return jsonify({"error": "Missing data"}), 400
 
@@ -105,16 +107,21 @@ def edit_group():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         
+        # Check Admin Status
         cursor.execute("SELECT is_admin FROM groups_members WHERE user_id=%s AND group_id=%s", (user_id, group_id))
-        if not cursor.fetchone() or cursor.fetchone()['is_admin'] != 1:
+        row = cursor.fetchone()
+        if not row or row['is_admin'] != 1:
             cursor.close(); conn.close()
             return jsonify({"error": "Unauthorized"}), 403
 
-        sql = "UPDATE groups_table SET group_name=%s"
-        params = [group_name]
+        # Update SQL Logic
+        sql = "UPDATE groups_table SET group_name=%s, description=%s"
+        params = [group_name, description]
+        
         if picture_filename:
             sql += ", picture=%s"
             params.append(picture_filename)
+        
         sql += " WHERE id=%s"
         params.append(group_id)
 
@@ -122,6 +129,40 @@ def edit_group():
         conn.commit()
         cursor.close(); conn.close()
         return jsonify({"message": "Updated"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# ==========================================
+# DELETE GROUP (NEW FEATURE)
+# ==========================================
+@groups_bp.route('/delete-group', methods=['DELETE'])
+def delete_group():
+    user_id = request.args.get('user_id')
+    group_id = request.args.get('group_id')
+
+    if not user_id or not group_id:
+        return jsonify({"error": "Missing fields"}), 400
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+
+        # 1. Check if user is admin of the group
+        cursor.execute("SELECT is_admin FROM groups_members WHERE user_id=%s AND group_id=%s", (user_id, group_id))
+        row = cursor.fetchone()
+        
+        if not row or row['is_admin'] != 1:
+            cursor.close(); conn.close()
+            return jsonify({"error": "Unauthorized. Only admins can delete the group."}), 403
+
+        # 2. Delete the group (Foreign keys should handle cascading if set, otherwise manual cleanup might be needed)
+        # Assuming DB handles cascading or we just delete the main entry for now as requested.
+        cursor.execute("DELETE FROM groups_table WHERE id = %s", (group_id,))
+        
+        conn.commit()
+        cursor.close(); conn.close()
+        return jsonify({"message": "Group deleted successfully"}), 200
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -176,7 +217,7 @@ def join_group():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 # ==========================================
-# BLOCK USER (NEW)
+# BLOCK USER
 # ==========================================
 @groups_bp.route('/block-user', methods=['POST'])
 def block_user():
@@ -196,7 +237,6 @@ def block_user():
         cursor.execute(sql_block, (blocker_id, blocked_id))
 
         # 2. Hide Blocked User's photos from Blocker
-        # (Find all photos owned by blocked_id, insert into hidden_photos for blocker_id)
         sql_hide_1 = """
             INSERT IGNORE INTO hidden_photos (user_id, photo_id)
             SELECT %s, id FROM photos WHERE user_id = %s
@@ -204,7 +244,6 @@ def block_user():
         cursor.execute(sql_hide_1, (blocker_id, blocked_id))
 
         # 3. Hide Blocker's photos from Blocked User (Mutual)
-        # (Find all photos owned by blocker_id, insert into hidden_photos for blocked_id)
         sql_hide_2 = """
             INSERT IGNORE INTO hidden_photos (user_id, photo_id)
             SELECT %s, id FROM photos WHERE user_id = %s
@@ -218,7 +257,7 @@ def block_user():
         return jsonify({"error": str(e)}), 500
 
 # ==========================================
-# UNBLOCK USER (NEW)
+# UNBLOCK USER
 # ==========================================
 @groups_bp.route('/unblock-user', methods=['POST'])
 def unblock_user():
@@ -233,9 +272,7 @@ def unblock_user():
         # 1. Remove from blocked_users
         cursor.execute("DELETE FROM blocked_users WHERE blocker_id = %s AND blocked_id = %s", (blocker_id, blocked_id))
 
-        # 2. Remove hidden entries (Make photos visible again mutually)
-        
-        # Make blocked_id's photos visible to blocker_id
+        # 2. Remove hidden entries
         sql_unhide_1 = """
             DELETE FROM hidden_photos 
             WHERE user_id = %s 
@@ -243,7 +280,6 @@ def unblock_user():
         """
         cursor.execute(sql_unhide_1, (blocker_id, blocked_id))
 
-        # Make blocker_id's photos visible to blocked_id
         sql_unhide_2 = """
             DELETE FROM hidden_photos 
             WHERE user_id = %s 
@@ -258,7 +294,7 @@ def unblock_user():
         return jsonify({"error": str(e)}), 500
 
 # ==========================================
-# GET BLOCKED USERS (NEW)
+# GET BLOCKED USERS
 # ==========================================
 @groups_bp.route('/get-blocked-users', methods=['GET'])
 def get_blocked_users():
@@ -296,13 +332,12 @@ def toggle_joining():
     data = request.json
     user_id = data.get('user_id')
     group_id = data.get('group_id')
-    status = data.get('status') # 1 (Open) or 0 (Closed)
+    status = data.get('status') 
 
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # Check Admin
         cursor.execute("SELECT is_admin FROM groups_members WHERE user_id=%s AND group_id=%s", (user_id, group_id))
         row = cursor.fetchone()
         if not row or row[0] != 1:
@@ -355,20 +390,18 @@ def manage_request():
     admin_id = data.get('admin_id')
     group_id = data.get('group_id')
     target_user_id = data.get('target_user_id')
-    action = data.get('action') # 'accept' or 'decline'
+    action = data.get('action') 
 
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # Check Admin
         cursor.execute("SELECT is_admin FROM groups_members WHERE user_id=%s AND group_id=%s", (admin_id, group_id))
         row = cursor.fetchone()
         if not row or row[0] != 1:
             cursor.close(); conn.close()
             return jsonify({"error": "Sadece yöneticiler isteklere cevap verebilir"}), 403
 
-        # Delete Request
         cursor.execute("DELETE FROM group_requests WHERE user_id=%s AND group_id=%s", (target_user_id, group_id))
 
         if action == 'accept':
@@ -389,13 +422,12 @@ def manage_member():
     admin_id = data.get('admin_id')
     group_id = data.get('group_id')
     target_user_id = data.get('target_user_id')
-    action = data.get('action') # 'kick' or 'promote'
+    action = data.get('action') 
 
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # Check Admin
         cursor.execute("SELECT is_admin FROM groups_members WHERE user_id=%s AND group_id=%s", (admin_id, group_id))
         row = cursor.fetchone()
         if not row or row[0] != 1:
@@ -406,7 +438,6 @@ def manage_member():
             cursor.execute("DELETE FROM groups_members WHERE user_id=%s AND group_id=%s", (target_user_id, group_id))
         
         elif action == 'promote':
-            # Swap Logic: Old admin -> 0, New admin -> 1
             cursor.execute("UPDATE groups_members SET is_admin = 0 WHERE user_id=%s AND group_id=%s", (admin_id, group_id))
             cursor.execute("UPDATE groups_members SET is_admin = 1 WHERE user_id=%s AND group_id=%s", (target_user_id, group_id))
 
@@ -432,47 +463,37 @@ def leave_group():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        # 1. Check if user is admin
         cursor.execute("SELECT is_admin FROM groups_members WHERE user_id=%s AND group_id=%s", (user_id, group_id))
         member_row = cursor.fetchone()
 
         if not member_row:
-            cursor.close()
-            conn.close()
+            cursor.close(); conn.close()
             return jsonify({"error": "Member not found"}), 404
         
         was_admin = (member_row['is_admin'] == 1)
 
-        # 2. Delete member (Leave group)
         cursor.execute("DELETE FROM groups_members WHERE user_id=%s AND group_id=%s", (user_id, group_id))
 
-        # 3. If admin left, assign heir
         if was_admin:
-            # Check if any admin remains
             cursor.execute("SELECT user_id FROM groups_members WHERE group_id=%s AND is_admin=1", (group_id,))
             remaining_admin = cursor.fetchone()
 
             if not remaining_admin:
-                # No admin left, find oldest member (lowest ID)
                 cursor.execute("SELECT user_id FROM groups_members WHERE group_id=%s ORDER BY id ASC LIMIT 1", (group_id,))
                 heir = cursor.fetchone()
                 
                 if heir:
-                    # Promote heir
                     cursor.execute("UPDATE groups_members SET is_admin=1 WHERE user_id=%s AND group_id=%s", (heir['user_id'], group_id))
-                    print(f"User {heir['user_id']} promoted to admin automatically.")
 
         conn.commit()
-        cursor.close()
-        conn.close()
+        cursor.close(); conn.close()
         return jsonify({"message": "Left group successfully"}), 200
 
     except Exception as e:
-        print(f"Leave group error: {e}")
         return jsonify({"error": str(e)}), 500
 
 # ==========================================
-# GET GROUP DETAILS
+# GET GROUP DETAILS (Updated with Description)
 # ==========================================
 @groups_bp.route('/get-group-details', methods=['GET'])
 def get_group_details():
@@ -481,7 +502,8 @@ def get_group_details():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         
-        cursor.execute("SELECT id, group_name, picture, group_code, is_joining_active FROM groups_table WHERE id = %s", (group_id,))
+        # Added 'description' to query
+        cursor.execute("SELECT id, group_name, description, picture, group_code, is_joining_active FROM groups_table WHERE id = %s", (group_id,))
         group = cursor.fetchone()
         
         if group:
@@ -530,9 +552,6 @@ def get_group_members():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         
-        # Modified Query:
-        # 1. Exclude members who BLOCKED the current_user (Ghosting)
-        # 2. Add is_blocked_by_me column to check if current_user BLOCKED the member
         sql = """
             SELECT 
                 u.id, 

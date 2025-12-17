@@ -1,5 +1,5 @@
 import os
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, url_for
 from db import get_db_connection
 
 admin_bp = Blueprint('admin', __name__)
@@ -46,7 +46,7 @@ def report_content():
         return jsonify({"error": str(e)}), 500
 
 # ==========================================
-# GET REPORTS
+# GET REPORTS (UPDATED: Detects Video vs Image)
 # ==========================================
 @admin_bp.route('/admin/get-reports', methods=['GET'])
 def get_reports():
@@ -80,10 +80,19 @@ def get_reports():
         cursor.execute(sql)
         reports = cursor.fetchall()
 
-        from flask import url_for
+        # Video extensions to check
+        video_extensions = {'mp4', 'mov', 'avi', 'm4v'}
+
         for report in reports:
             if report['photo_filename']:
                 report['photo_url'] = url_for('photos.uploaded_file', filename=report['photo_filename'], _external=True)
+                
+                # Determine Media Type
+                ext = report['photo_filename'].rsplit('.', 1)[1].lower()
+                if ext in video_extensions:
+                    report['media_type'] = 'video'
+                else:
+                    report['media_type'] = 'image'
 
         cursor.close(); conn.close()
         return jsonify(reports), 200
@@ -142,7 +151,7 @@ def unban_user():
         return jsonify({"error": str(e)}), 500
 
 # ==========================================
-# MANUAL BAN USER (NEW)
+# MANUAL BAN USER
 # ==========================================
 @admin_bp.route('/admin/manual-ban', methods=['POST'])
 def manual_ban():
@@ -171,7 +180,6 @@ def manual_ban():
             cursor.execute("SELECT * FROM users WHERE id = %s", (target_id,))
             target_user = cursor.fetchone()
         elif target_phone:
-            # Ensure format matches DB (e.g., +90...)
             cursor.execute("SELECT * FROM users WHERE phone_number = %s", (target_phone,))
             target_user = cursor.fetchone()
 
@@ -184,7 +192,6 @@ def manual_ban():
         uname = target_user['username']
         uid = target_user['id']
 
-        # Prevent banning self
         if str(uid) == str(admin_id):
             cursor.close(); conn.close()
             return jsonify({"error": "Cannot ban yourself"}), 400
@@ -200,7 +207,7 @@ def manual_ban():
         return jsonify({"error": str(e)}), 500
 
 # ==========================================
-# RESOLVE REPORT (Logic Updated)
+# RESOLVE REPORT
 # ==========================================
 @admin_bp.route('/admin/resolve-report', methods=['POST'])
 def resolve_report():
@@ -227,20 +234,16 @@ def resolve_report():
                 cursor.execute("SELECT file_name FROM photos WHERE id=%s", (photo_id,))
                 photo_row = cursor.fetchone()
                 
-                # Delete files
                 if photo_row:
                     file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], photo_row['file_name'])
                     thumb_path = os.path.join(current_app.config['UPLOAD_FOLDER'], f"thumb_{photo_row['file_name']}")
                     if os.path.exists(file_path): os.remove(file_path)
                     if os.path.exists(thumb_path): os.remove(thumb_path)
 
-                # Delete from DB
                 cursor.execute("DELETE FROM photos WHERE id = %s", (photo_id,))
-                # Also delete the report itself
                 cursor.execute("DELETE FROM content_reports WHERE id=%s", (report_id,))
                 
         elif action == 'dismiss':
-            # Changed from UPDATE status to DELETE row as requested
             cursor.execute("DELETE FROM content_reports WHERE id=%s", (report_id,))
 
         elif action == 'ban_user':
@@ -249,7 +252,6 @@ def resolve_report():
             
             if report_row:
                 uploader_id = report_row['uploader_id']
-                # Get Phone AND Username before deleting
                 cursor.execute("SELECT phone_number, username FROM users WHERE id=%s", (uploader_id,))
                 user_row = cursor.fetchone()
                 
@@ -257,13 +259,8 @@ def resolve_report():
                     phone = user_row['phone_number']
                     uname = user_row['username']
                     
-                    # Insert into Banned Users
                     cursor.execute("INSERT INTO banned_users (phone_number, username, reason) VALUES (%s, %s, %s)", (phone, uname, "Reported Content"))
-                    
-                    # Delete User
                     cursor.execute("DELETE FROM users WHERE id=%s", (uploader_id,))
-                    
-                    # Also delete the report itself
                     cursor.execute("DELETE FROM content_reports WHERE id=%s", (report_id,))
 
         conn.commit()

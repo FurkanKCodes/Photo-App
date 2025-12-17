@@ -8,6 +8,7 @@
 CREATE TABLE groups_table (
     id INT AUTO_INCREMENT PRIMARY KEY,
     group_code VARCHAR(10) UNIQUE NOT NULL,
+    description VARCHAR(255) DEFAULT NUL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_by INT NOT NULL,
     group_name VARCHAR(255) NOT NULL DEFAULT 'Adsız Grup',

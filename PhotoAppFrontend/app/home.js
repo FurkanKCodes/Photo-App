@@ -31,6 +31,7 @@ export default function HomeScreen() {
   
   // Form States
   const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupDescription, setNewGroupDescription] = useState('');
   const [newGroupImage, setNewGroupImage] = useState(null); 
   const [joinCode, setJoinCode] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
@@ -38,6 +39,22 @@ export default function HomeScreen() {
   // Full Screen Image State
   const [isImageModalVisible, setImageModalVisible] = useState(false);
   const [selectedGroupImage, setSelectedGroupImage] = useState(null);
+
+  // --- INTERNET WARM-UP ---
+  // Sayfa açıldığında NetInfo'yu bir kez tetikliyoruz ki ilk tıklamada hazır olsun.
+  useEffect(() => {
+    NetInfo.fetch(); 
+  }, []);
+
+  const checkInternetConnection = async () => {
+      const state = await NetInfo.fetch();
+      // Sadece kesin olarak "bağlı değil" (false) ise hata ver.
+      if (state.isConnected === false) {
+          Alert.alert("Bağlantı Hatası", "Lütfen bir internete bağlı olduğunuzdan emin olun.");
+          return false;
+      }
+      return true;
+  };
 
   // --- FETCH DATA (GROUPS & PROFILE) ---
   const fetchData = async () => {
@@ -133,14 +150,11 @@ export default function HomeScreen() {
     }
   };
 
-  // --- KAMERA YÖNLENDİRME (GÜNCELLENDİ: İNTERNET KONTROLÜ) ---
+  // --- KAMERA YÖNLENDİRME (GÜNCELLENDİ) ---
   const handleCameraAction = async (groupId) => {
       // 1. İNTERNET KONTROLÜ
-      const netState = await NetInfo.fetch();
-      if (!netState.isConnected || !netState.isInternetReachable) {
-          Alert.alert("Bağlantı Hatası", "Lütfen bir internete bağlı olduğunuzdan emin olun.");
-          return; // Fonksiyonu burada durdur
-      }
+      const hasInternet = await checkInternetConnection();
+      if (!hasInternet) return; // İnternet yoksa durdur
 
       // ID kontrolü
       if (!groupId || !userId) {
@@ -160,6 +174,10 @@ export default function HomeScreen() {
 
   // --- CREATE GROUP LOGIC ---
   const handleCreateGroup = async () => {
+    // BURADA DA İNTERNET KONTROLÜ EKLENEBİLİR (İsteğe bağlı)
+    const hasInternet = await checkInternetConnection();
+    if (!hasInternet) return;
+
     if (!newGroupName.trim()) {
       Alert.alert("Error", "Please enter group name.");
       return;
@@ -170,6 +188,7 @@ export default function HomeScreen() {
       const formData = new FormData();
       formData.append('user_id', userId);
       formData.append('group_name', newGroupName);
+      formData.append('description', newGroupDescription);
 
       if (newGroupImage) {
         const filename = newGroupImage.split('/').pop();
@@ -195,7 +214,7 @@ export default function HomeScreen() {
       const data = await response.json();
 
       if (response.ok) {
-        Alert.alert("Success", `Group created!\nCode: ${data.group_code}`);
+        Alert.alert("Başarılı", `Grup oluşturuldu!\nKod: ${data.group_code}`);
         setModalVisible(false);
         setNewGroupName('');
         setNewGroupImage(null);
@@ -212,6 +231,10 @@ export default function HomeScreen() {
 
   // --- JOIN GROUP LOGIC ---
   const handleJoinGroup = async () => {
+    // BURADA DA İNTERNET KONTROLÜ EKLENEBİLİR
+    const hasInternet = await checkInternetConnection();
+    if (!hasInternet) return;
+
     if (!joinCode.trim()) {
       Alert.alert("Error", "Please enter code.");
       return;
@@ -364,6 +387,16 @@ export default function HomeScreen() {
                             placeholder="Örn: Tatil Fotoğrafları"
                             value={newGroupName}
                             onChangeText={setNewGroupName}
+                        />
+
+                        <Text style={homeStyles.label}>Açıklama: (Maks: 255 karakter)</Text>
+                        <TextInput 
+                            style={homeStyles.input} 
+                            placeholder="Grup açıklaması (İsteğe bağlı)" 
+                            value={newGroupDescription} 
+                            onChangeText={setNewGroupDescription}
+                            maxLength={255}
+                            multiline
                         />
 
                         <TouchableOpacity 

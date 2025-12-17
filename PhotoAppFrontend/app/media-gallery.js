@@ -38,6 +38,20 @@ export default function MediaGalleryScreen() {
   
   const fullScreenListRef = useRef(null);
 
+  // --- INTERNET CHECK LOGIC ---
+  useEffect(() => {
+    NetInfo.fetch(); // Kütüphaneyi uyandır
+  }, []);
+
+  const checkInternetConnection = async () => {
+      const state = await NetInfo.fetch();
+      if (state.isConnected === false) {
+          Alert.alert("Bağlantı Hatası", "Lütfen bir internete bağlı olduğunuzdan emin olun.");
+          return false;
+      }
+      return true;
+  };
+
   // --- FETCH PHOTOS ---
   const fetchPhotos = async () => {
     try {
@@ -60,11 +74,8 @@ export default function MediaGalleryScreen() {
   // --- UPLOAD HANDLER (GÜNCELLENDİ: İNTERNET KONTROLÜ) ---
   const handleUpload = async () => {
     // 1. İNTERNET KONTROLÜ
-    const netState = await NetInfo.fetch();
-    if (!netState.isConnected || !netState.isInternetReachable) {
-        Alert.alert("Bağlantı Hatası", "Lütfen bir internete bağlı olduğunuzdan emin olun.");
-        return;
-    }
+    const hasInternet = await checkInternetConnection();
+    if (!hasInternet) return;
 
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
@@ -176,6 +187,10 @@ export default function MediaGalleryScreen() {
 
   // --- BULK ACTION VIA BACKEND ---
   const processBulkRemove = async (type) => {
+      // BULK İŞLEMDE DE İNTERNET KONTROLÜ
+      const hasInternet = await checkInternetConnection();
+      if (!hasInternet) return;
+
       setLoading(true);
       try {
           // Optimized: Single Request to Backend
@@ -242,6 +257,9 @@ export default function MediaGalleryScreen() {
   };
 
   const submitReport = async (photoId, reason) => {
+    const hasInternet = await checkInternetConnection();
+    if (!hasInternet) return;
+
     try {
         const response = await fetch(`${API_URL}/report-content`, {
             method: 'POST',
@@ -322,6 +340,9 @@ export default function MediaGalleryScreen() {
   };
 
   const performHidePhoto = async (photoId) => {
+    const hasInternet = await checkInternetConnection();
+    if (!hasInternet) return;
+
     try {
         const response = await fetch(`${API_URL}/hide-photo`, {
             method: 'POST',
@@ -335,6 +356,9 @@ export default function MediaGalleryScreen() {
   };
 
   const performDeletePhoto = async (photoId) => {
+    const hasInternet = await checkInternetConnection();
+    if (!hasInternet) return;
+
     try {
         const response = await fetch(`${API_URL}/delete-photo?user_id=${userId}&photo_id=${photoId}`, {
             method: 'DELETE',

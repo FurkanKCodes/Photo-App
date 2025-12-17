@@ -176,6 +176,15 @@ const adminPanelStyles = StyleSheet.create({
     marginBottom: 15,
     resizeMode: 'contain'
   },
+
+  // Evidence Video (NEW)
+  evidenceVideo: {
+    width: '100%',
+    height: 300,
+    backgroundColor: '#000',
+    borderRadius: 8,
+    marginBottom: 15,
+  },
   
   // Detail Box
   detailRow: {

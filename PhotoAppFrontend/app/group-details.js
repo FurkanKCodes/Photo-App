@@ -6,7 +6,7 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker'; 
-import * as Clipboard from 'expo-clipboard'; // Panoya kopyalama için
+import * as Clipboard from 'expo-clipboard'; 
 import API_URL from '../config';
 import groupDetailsStyles from '../styles/groupDetailsStyles';
 
@@ -32,6 +32,7 @@ export default function GroupDetailsScreen() {
   // Edit Modal States
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editName, setEditName] = useState('');
+  const [editDescription, setEditDescription] = useState(''); // New: Description Edit
   const [editImage, setEditImage] = useState(null); 
   const [hasChanges, setHasChanges] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -92,17 +93,10 @@ export default function GroupDetailsScreen() {
                         const response = await fetch(`${API_URL}/block-user`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
-                            body: JSON.stringify({
-                                blocker_id: userId,
-                                blocked_id: targetMember.id
-                            })
+                            body: JSON.stringify({ blocker_id: userId, blocked_id: targetMember.id })
                         });
-                        if (response.ok) {
-                            Alert.alert("Başarılı", "Kişi engellendi.");
-                            fetchData();
-                        } else {
-                            Alert.alert("Hata", "İşlem başarısız.");
-                        }
+                        if (response.ok) { Alert.alert("Başarılı", "Kişi engellendi."); fetchData(); } 
+                        else { Alert.alert("Hata", "İşlem başarısız."); }
                     } catch (e) { console.error(e); }
                 }
             }
@@ -124,17 +118,10 @@ export default function GroupDetailsScreen() {
                         const response = await fetch(`${API_URL}/unblock-user`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
-                            body: JSON.stringify({
-                                blocker_id: userId,
-                                blocked_id: targetMember.id
-                            })
+                            body: JSON.stringify({ blocker_id: userId, blocked_id: targetMember.id })
                         });
-                        if (response.ok) {
-                            Alert.alert("Başarılı", "Engel kaldırıldı.");
-                            fetchData();
-                        } else {
-                            Alert.alert("Hata", "İşlem başarısız.");
-                        }
+                        if (response.ok) { Alert.alert("Başarılı", "Engel kaldırıldı."); fetchData(); } 
+                        else { Alert.alert("Hata", "İşlem başarısız."); }
                     } catch (e) { console.error(e); }
                 }
             }
@@ -144,26 +131,12 @@ export default function GroupDetailsScreen() {
 
   const handlePromoteUser = (targetMember) => {
       setActiveMenuMemberId(null);
-      Alert.alert(
-          "Onay",
-          "Yönetici yapmak istediğinizden emin misiniz?",
-          [
-              { text: "Hayır", style: "cancel" },
-              { text: "Evet", onPress: () => performMemberAction(targetMember.id, 'promote') }
-          ]
-      );
+      Alert.alert("Onay", "Yönetici yapmak istediğinizden emin misiniz?. Kendi yöneticiliğiniz iptal olacaktır.", [ { text: "Hayır", style: "cancel" }, { text: "Evet", onPress: () => performMemberAction(targetMember.id, 'promote') } ]);
   };
 
   const handleKickUser = (targetMember) => {
       setActiveMenuMemberId(null);
-      Alert.alert(
-          "Onay",
-          "Gruptan atmak istediğinize emin misiniz?",
-          [
-              { text: "Hayır", style: "cancel" },
-              { text: "Evet", onPress: () => performMemberAction(targetMember.id, 'kick') }
-          ]
-      );
+      Alert.alert("Onay", "Gruptan atmak istediğinize emin misiniz?", [ { text: "Hayır", style: "cancel" }, { text: "Evet", onPress: () => performMemberAction(targetMember.id, 'kick') } ]);
   };
 
   const performMemberAction = async (targetId, action) => {
@@ -171,19 +144,10 @@ export default function GroupDetailsScreen() {
           const response = await fetch(`${API_URL}/manage-member`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
-              body: JSON.stringify({
-                  admin_id: userId,
-                  group_id: groupId,
-                  target_user_id: targetId,
-                  action: action
-              })
+              body: JSON.stringify({ admin_id: userId, group_id: groupId, target_user_id: targetId, action: action })
           });
-          if(response.ok) {
-              fetchData(); 
-              if(action === 'promote') Alert.alert("Başarılı", "Yöneticilik devredildi.");
-          } else {
-              Alert.alert("Hata", "İşlem başarısız.");
-          }
+          if(response.ok) { fetchData(); if(action === 'promote') Alert.alert("Başarılı", "Yöneticilik devredildi."); } 
+          else { Alert.alert("Hata", "İşlem başarısız."); }
       } catch(e) { console.error(e); }
   };
 
@@ -230,24 +194,71 @@ export default function GroupDetailsScreen() {
       ]);
   };
 
+  // --- DELETE GROUP (NEW) ---
+  const handleDeleteGroup = () => {
+      if (!isAdmin) return;
+      Alert.alert(
+          "Grubu Sil", 
+          "Grubu silmek istediğinize emin misiniz? Bu işlem geri alınamaz.",
+          [
+              { text: "Vazgeç", style: "cancel" },
+              { 
+                  text: "Evet, Sil", style: "destructive", 
+                  onPress: async () => {
+                      try {
+                          const res = await fetch(`${API_URL}/delete-group?user_id=${userId}&group_id=${groupId}`, {
+                              method: 'DELETE',
+                              headers: { 'ngrok-skip-browser-warning': 'true' }
+                          });
+                          if (res.ok) {
+                              Alert.alert("Başarılı", "Grup silindi.");
+                              router.replace({ pathname: '/home', params: { userId } });
+                          } else {
+                              const err = await res.json();
+                              Alert.alert("Hata", err.error || "Grup silinemedi.");
+                          }
+                      } catch (e) {
+                          console.error(e);
+                          Alert.alert("Hata", "Bağlantı hatası.");
+                      }
+                  }
+              }
+          ]
+      );
+  };
+
   // --- EDIT GROUP ---
   const handleEditGroupPress = () => {
     setEditName(groupDetails?.group_name || '');
+    setEditDescription(groupDetails?.description || ''); // Initialize description
     setEditImage(null);
     setHasChanges(false);
     setEditModalVisible(true);
   };
-  const onNameChange = (text) => { setEditName(text); checkChanges(text, editImage); };
+  
+  const onNameChange = (text) => { setEditName(text); checkChanges(text, editDescription, editImage); };
+  const onDescriptionChange = (text) => { setEditDescription(text); checkChanges(editName, text, editImage); };
+
   const handleEditImageOptions = () => { Alert.alert("Fotoğraf Seç", "Seçenekler:", [{ text: "Kamera", onPress: openCamera }, { text: "Galeri", onPress: openGallery }, { text: "İptal", style: "cancel" }]); };
-  const openCamera = async () => { const { status } = await ImagePicker.requestCameraPermissionsAsync(); if (status !== 'granted') return; const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.5 }); if (!result.canceled) { setEditImage(result.assets[0].uri); checkChanges(editName, result.assets[0].uri); } };
-  const openGallery = async () => { const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync(); if (status !== 'granted') return; const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.5 }); if (!result.canceled) { setEditImage(result.assets[0].uri); checkChanges(editName, result.assets[0].uri); } };
-  const checkChanges = (newName, newImg) => { setHasChanges(newName.trim() !== groupDetails?.group_name || newImg !== null); };
+  const openCamera = async () => { const { status } = await ImagePicker.requestCameraPermissionsAsync(); if (status !== 'granted') return; const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.5 }); if (!result.canceled) { setEditImage(result.assets[0].uri); checkChanges(editName, editDescription, result.assets[0].uri); } };
+  const openGallery = async () => { const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync(); if (status !== 'granted') return; const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, aspect: [1, 1], quality: 0.5 }); if (!result.canceled) { setEditImage(result.assets[0].uri); checkChanges(editName, editDescription, result.assets[0].uri); } };
+  
+  const checkChanges = (newName, newDesc, newImg) => { 
+      const isNameDiff = newName.trim() !== groupDetails?.group_name;
+      const isDescDiff = (newDesc || '') !== (groupDetails?.description || '');
+      const isImgDiff = newImg !== null;
+      setHasChanges(isNameDiff || isDescDiff || isImgDiff); 
+  };
   
   const handleSaveChanges = async () => { 
       if (!hasChanges) return; setSaving(true); 
       try { 
           const formData = new FormData(); 
-          formData.append('user_id', userId); formData.append('group_id', groupId); formData.append('group_name', editName); 
+          formData.append('user_id', userId); 
+          formData.append('group_id', groupId); 
+          formData.append('group_name', editName); 
+          formData.append('description', editDescription); // Send Description
+
           if (editImage) { 
               const filename = editImage.split('/').pop(); 
               const match = /\.(\w+)$/.exec(filename); const type = match ? `image/${match[1]}` : `image`; 
@@ -259,10 +270,7 @@ export default function GroupDetailsScreen() {
   };
 
   const handleImagePress = (imageUrl) => { 
-    if (imageUrl) { 
-        setSelectedImage({ uri: imageUrl }); 
-        setImageModalVisible(true); 
-    } 
+    if (imageUrl) { setSelectedImage({ uri: imageUrl }); setImageModalVisible(true); } 
   };
 
   // --- RENDER HELPERS ---
@@ -274,10 +282,7 @@ export default function GroupDetailsScreen() {
     const isMenuOpen = activeMenuMemberId === item.id;
     const isBlocked = item.is_blocked_by_me === 1;
 
-    const toggleMenu = () => {
-        if (isMenuOpen) setActiveMenuMemberId(null);
-        else setActiveMenuMemberId(item.id);
-    };
+    const toggleMenu = () => { if (isMenuOpen) setActiveMenuMemberId(null); else setActiveMenuMemberId(item.id); };
 
     return (
       <View key={item.id} style={[groupDetailsStyles.memberItem, isMenuOpen && { zIndex: 1000, elevation: 1000 }]}>
@@ -299,8 +304,6 @@ export default function GroupDetailsScreen() {
                 <TouchableOpacity onPress={toggleMenu} style={groupDetailsStyles.moreButton}>
                     <Ionicons name="ellipsis-vertical" size={24} color="#888" />
                 </TouchableOpacity>
-
-                {/* POPUP MENU */}
                 {isMenuOpen && (
                     <View style={groupDetailsStyles.popupMenu}>
                         {isBlocked ? (
@@ -312,7 +315,6 @@ export default function GroupDetailsScreen() {
                                 <Text style={groupDetailsStyles.popupMenuText}>Kişiyi Engelle</Text>
                              </TouchableOpacity>
                         )}
-
                         {isAdmin && (
                             <>
                                 <TouchableOpacity onPress={() => handleKickUser(item)} style={groupDetailsStyles.popupMenuItem}>
@@ -358,7 +360,6 @@ export default function GroupDetailsScreen() {
   const isJoiningOpen = groupDetails?.is_joining_active === 1;
 
   return (
-    // SCROLL FIX: Removed global TouchableWithoutFeedback wrapper
     <View style={groupDetailsStyles.container}>
       <StatusBar backgroundColor="#007AFF" barStyle="light-content" />
 
@@ -373,10 +374,7 @@ export default function GroupDetailsScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView 
-        contentContainerStyle={{ paddingBottom: 150 }} 
-        // scrollEnabled={true} -> Scroll is enabled by default, no need to lock it anymore
-      > 
+      <ScrollView contentContainerStyle={{ paddingBottom: 150 }}> 
         {/* 1. GROUP INFO */}
         <View style={groupDetailsStyles.groupInfoContainer}>
             <TouchableOpacity onPress={() => groupOriginal && handleImagePress(groupOriginal)}>
@@ -384,7 +382,11 @@ export default function GroupDetailsScreen() {
             </TouchableOpacity>
             <Text style={groupDetailsStyles.groupNameText}>{groupDetails?.group_name}</Text>
             
-            {/* GROUP CODE SECTION (NEW) */}
+            {/* GROUP DESCRIPTION DISPLAY */}
+            <Text style={groupDetailsStyles.groupDescriptionText}>
+                {groupDetails?.description || "Açıklama Yok"}
+            </Text>
+            
             <TouchableOpacity onPress={copyGroupCode} style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 8 }}>
                 <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#000', marginRight: 5 }}>
                     {groupDetails?.group_code}
@@ -401,11 +403,9 @@ export default function GroupDetailsScreen() {
 
         {/* 2. MEMBERS LIST */}
         <Text style={groupDetailsStyles.membersTitle}>Üyeler</Text>
-        <View>
-            {members.map(member => renderMemberItem(member))}
-        </View>
+        <View>{members.map(member => renderMemberItem(member))}</View>
 
-        {/* 3. REQUESTS HEADER & TOGGLE */}
+        {/* 3. REQUESTS */}
         <View style={groupDetailsStyles.sectionHeader}>
             <Text style={groupDetailsStyles.membersTitle}>İstekler</Text>
             <View style={groupDetailsStyles.toggleContainer}>
@@ -415,35 +415,33 @@ export default function GroupDetailsScreen() {
                         {isJoiningOpen ? 'Açık' : 'Kapalı'}
                     </Text>
                 </View>
-                <Switch 
-                    trackColor={{ false: "#767577", true: "#81b0ff" }}
-                    thumbColor={isJoiningOpen ? "#007AFF" : "#f4f3f4"}
-                    onValueChange={handleToggleJoining}
-                    value={isJoiningOpen}
-                />
+                <Switch trackColor={{ false: "#767577", true: "#81b0ff" }} thumbColor={isJoiningOpen ? "#007AFF" : "#f4f3f4"} onValueChange={handleToggleJoining} value={isJoiningOpen} />
             </View>
         </View>
+        <View>{requests.length > 0 ? (requests.map(req => renderRequestItem(req))) : (<Text style={groupDetailsStyles.emptyText}>Şuan bir istek bulunmamaktadır</Text>)}</View>
 
-        {/* 4. REQUESTS LIST */}
-        <View>
-            {requests.length > 0 ? (
-                requests.map(req => renderRequestItem(req))
-            ) : (
-                <Text style={groupDetailsStyles.emptyText}>Şuan bir istek bulunmamaktadır</Text>
+        {/* 5. LEAVE & DELETE BUTTONS (Side by Side) */}
+        <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 30, paddingHorizontal: 20 }}>
+            {/* Delete Button (Admin Only) */}
+            {isAdmin && (
+                <TouchableOpacity 
+                    style={[groupDetailsStyles.leaveButton, { backgroundColor: '#333', marginRight: 10, flex: 1 }]} 
+                    onPress={handleDeleteGroup}
+                >
+                    <Ionicons name="trash-outline" size={24} color="#fff" />
+                    <Text style={groupDetailsStyles.leaveText}>Grubu Sil</Text>
+                </TouchableOpacity>
             )}
-        </View>
 
-        {/* 5. LEAVE BUTTON */}
-        <View style={{ alignItems: 'flex-end', marginTop: 20, marginRight: 20 }}>
+            {/* Leave Button */}
             <TouchableOpacity 
-                style={[groupDetailsStyles.leaveButton, { marginHorizontal: 0, width: 180 }]} 
+                style={[groupDetailsStyles.leaveButton, { flex: 1 }]} 
                 onPress={handleLeaveGroup}
             >
                 <Ionicons name="log-out-outline" size={24} color="#fff" />
                 <Text style={groupDetailsStyles.leaveText}>Gruptan Ayrıl</Text>
             </TouchableOpacity>
         </View>
-        
       </ScrollView>
 
       {/* --- MODALS --- */}
@@ -456,6 +454,7 @@ export default function GroupDetailsScreen() {
         </View>
       </Modal>
 
+      {/* EDIT MODAL */}
       <Modal visible={editModalVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setEditModalVisible(false)}>
         <View style={groupDetailsStyles.editModalContainer}>
             <View style={groupDetailsStyles.editModalHeader}>
@@ -478,6 +477,18 @@ export default function GroupDetailsScreen() {
                     <View style={groupDetailsStyles.inputContainer}>
                         <Text style={groupDetailsStyles.inputLabel}>Grup Adı:</Text>
                         <TextInput style={groupDetailsStyles.input} value={editName} onChangeText={onNameChange} placeholder="Grup adı" />
+                    </View>
+                    {/* NEW DESCRIPTION EDIT FIELD */}
+                    <View style={groupDetailsStyles.inputContainer}>
+                        <Text style={groupDetailsStyles.inputLabel}>Açıklama (Maks: 255):</Text>
+                        <TextInput 
+                            style={groupDetailsStyles.input} 
+                            value={editDescription} 
+                            onChangeText={onDescriptionChange} 
+                            placeholder="Grup açıklaması"
+                            maxLength={255}
+                            multiline
+                        />
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>

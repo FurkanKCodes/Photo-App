@@ -1,4 +1,4 @@
-  import { StyleSheet, StatusBar, Platform, Dimensions } from 'react-native';
+import { StyleSheet, StatusBar, Platform, Dimensions } from 'react-native';
   
   const { width, height } = Dimensions.get('window');
   
@@ -47,6 +47,14 @@
       fontWeight: 'bold',
       color: '#333',
       marginBottom: 5,
+    },
+    // NEW: DESCRIPTION STYLE
+    groupDescriptionText: {
+        fontSize: 14,
+        color: '#666',
+        textAlign: 'center',
+        paddingHorizontal: 30,
+        marginBottom: 10,
     },
     editGroupButton: {
       marginTop: 5,
@@ -208,6 +216,7 @@
     inputContainer: {
       width: '90%',
       paddingHorizontal: 10,
+      marginBottom: 20,
     },
     inputLabel: {
       fontSize: 14,
@@ -269,12 +278,12 @@
       marginTop: 10,
       marginBottom: 20,
     },
-  // --- LEAVE BUTTON ---
+  // --- LEAVE & DELETE BUTTON ---
     leaveButton: {
       flexDirection: 'row',
       backgroundColor: '#FF3B30', // Red
-      marginHorizontal: 20,
-      marginTop: 30,
+      // marginHorizontal: 20, // Removed for flex layout
+      marginTop: 0,
       paddingVertical: 12,
       borderRadius: 10,
       justifyContent: 'center',

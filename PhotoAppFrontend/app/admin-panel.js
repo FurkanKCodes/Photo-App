@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Video, ResizeMode } from 'expo-av'; // VIDEO IMPORT EKLENDI
 import API_URL from '../config';
 import adminPanelStyles from '../styles/adminPanelStyles';
 
@@ -33,7 +34,6 @@ export default function AdminPanel() {
     if(currentUserId) {
         if (activeTab === 'reports') fetchReports();
         else if (activeTab === 'banned') fetchBannedUsers();
-        // 'manual_ban' tab needs no initial fetch
     }
   }, [currentUserId, activeTab]);
 
@@ -267,7 +267,18 @@ export default function AdminPanel() {
                                 </TouchableOpacity>
                             </View>
 
-                            <Image source={{ uri: selectedReport.photo_url }} style={adminPanelStyles.evidenceImage} resizeMode="contain" />
+                            {/* --- MEDIA DISPLAY LOGIC (VIDEO OR IMAGE) --- */}
+                            {selectedReport.media_type === 'video' ? (
+                                <Video
+                                    source={{ uri: selectedReport.photo_url }}
+                                    style={adminPanelStyles.evidenceVideo}
+                                    useNativeControls
+                                    resizeMode={ResizeMode.CONTAIN}
+                                    isLooping
+                                />
+                            ) : (
+                                <Image source={{ uri: selectedReport.photo_url }} style={adminPanelStyles.evidenceImage} resizeMode="contain" />
+                            )}
 
                             <View style={adminPanelStyles.detailRow}>
                                 <Text style={adminPanelStyles.label}>Sebep:</Text>
@@ -297,13 +308,12 @@ export default function AdminPanel() {
         </View>
       </Modal>
 
-      {/* --- BANNED USER POPUP (SCROLL ADDED) --- */}
+      {/* --- BANNED USER POPUP --- */}
       <Modal visible={banModalVisible} animationType="fade" transparent={true} onRequestClose={() => setBanModalVisible(false)}>
         <TouchableWithoutFeedback onPress={() => setBanModalVisible(false)}>
             <View style={adminPanelStyles.modalOverlay}>
                 <TouchableWithoutFeedback>
                     <View style={adminPanelStyles.modalContainer}>
-                        {/* ScrollView Added Here for Scrolling Content */}
                         <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
                             {selectedBannedUser && (
                                 <>
