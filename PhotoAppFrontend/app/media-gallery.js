@@ -10,14 +10,18 @@ import * as ImagePicker from 'expo-image-picker';
 import { Video, ResizeMode } from 'expo-av'; 
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler'; 
 
+import * as FileSystem from 'expo-file-system/legacy';
+import * as MediaLibrary from 'expo-media-library';
+// --- YENİ EKLENEN: Tarih sıfırlama için gerekli ---
+import * as ImageManipulator from 'expo-image-manipulator';
+
 import API_URL from '../config';
 import mediaStyles from '../styles/mediaStyles';
 import NetInfo from '@react-native-community/netinfo';
 
 const { width, height } = Dimensions.get('window');
-const defaultUserImage = require('../assets/no-pic.jpg'); // Profil resmi yoksa
+const defaultUserImage = require('../assets/no-pic.jpg'); 
 
-// İzin verilen sütun seçenekleri
 const COLUMN_OPTIONS = [2, 3, 4, 6, 8];
 
 export default function MediaGalleryScreen() {
@@ -290,7 +294,6 @@ export default function MediaGalleryScreen() {
         await uploadSingleFile(asset);
       }
       setUploading(false);
-      // DÜZELTİLDİ: fetchPhotos() -> fetchData()
       fetchData(); 
     }
   };
@@ -343,6 +346,59 @@ export default function MediaGalleryScreen() {
       }
   };
 
+  // --- GÜNCELLENEN FONKSİYON: GALERİYE KAYDETME (METADATA SIFIRLAMA) ---
+  const saveFileToGallery = async (remoteUrl) => {
+    // 1. İzin İste
+    const { status } = await MediaLibrary.requestPermissionsAsync();
+    if (status !== 'granted') {
+        Alert.alert("İzin Gerekli", "Galeriye kaydetmek için medya erişim izni vermelisiniz.");
+        return false;
+    }
+
+    try {
+        const extension = remoteUrl.split('.').pop();
+        // Benzersiz bir dosya adı oluşturuyoruz
+        const tempFilename = `temp_dl_${Date.now()}.${extension}`;
+        const tempUri = FileSystem.documentDirectory + tempFilename;
+
+        // 2. Dosyayı indir
+        const { uri: downloadedUri } = await FileSystem.downloadAsync(remoteUrl, tempUri);
+        
+        let finalUri = downloadedUri;
+
+        // 3. Metadata Sıfırlama (ImageManipulator Hilesi)
+        // Bu işlem dosyanın yeni bir kopyasını oluşturur, böylece "Oluşturulma Tarihi" şu an olur.
+        // Sadece resim formatları için geçerlidir.
+        const isImage = ['jpg', 'jpeg', 'png', 'webp'].includes(extension.toLowerCase());
+
+        if (isImage) {
+            const manipulatedResult = await ImageManipulator.manipulateAsync(
+                downloadedUri,
+                [], // Hiçbir düzenleme yapmadan kopyala
+                { format: ImageManipulator.SaveFormat.JPEG, compress: 1.0 } // %100 Kalite
+            );
+            finalUri = manipulatedResult.uri;
+        }
+
+        // 4. Galeriye Kaydet
+        await MediaLibrary.createAssetAsync(finalUri);
+        
+        // 5. Temizlik
+        // Oluşturduğumuz geçici dosyaları siliyoruz
+        if (finalUri !== downloadedUri) {
+            // Manipülasyon sonucu oluşan dosyayı sil (MediaLibrary zaten kopyasını aldı)
+             await FileSystem.deleteAsync(downloadedUri, { idempotent: true });
+        } else {
+             await FileSystem.deleteAsync(downloadedUri, { idempotent: true });
+        }
+        
+        return true;
+    } catch (e) {
+        console.error("Save Error:", e);
+        return false;
+    }
+  };
+
   const handleBulkActionPress = () => {
       if (selectedIds.length === 0) return;
 
@@ -351,14 +407,27 @@ export default function MediaGalleryScreen() {
           "Ne yapmak istersiniz?",
           [
               { text: "İptal", style: "cancel" },
-              { text: "Kaydet", onPress: handleBulkSave },
+              { text: "Kaydet", onPress: handleBulkSave }, // Kaydet artık gerçek fonksiyonu çağırıyor
               { text: "Kaldır", style: 'destructive', onPress: handleBulkRemoveConfirmation }
           ]
       );
   };
 
-  const handleBulkSave = () => {
-      Alert.alert("Başarılı", `${selectedIds.length} medya kaydedildi.`);
+  // --- YENİ EKLENEN: TOPLU KAYDETME ---
+  const handleBulkSave = async () => {
+      Alert.alert("İşlem Başladı", "Seçilen medyalar galeriye kaydediliyor...");
+      
+      let successCount = 0;
+      for (const id of selectedIds) {
+          const photo = photos.find(p => p.id === id);
+          if (photo) {
+              // Yüksek kaliteli URL (original url) kullanılır
+              const result = await saveFileToGallery(photo.url); 
+              if (result) successCount++;
+          }
+      }
+
+      Alert.alert("Tamamlandı", `${successCount} adet medya galeriye başarıyla kaydedildi.`);
       toggleSelectionMode();
   };
 
@@ -401,7 +470,6 @@ export default function MediaGalleryScreen() {
 
           if (response.ok) {
               Alert.alert("Başarılı", "İşlem tamamlandı.");
-              // DÜZELTİLDİ: fetchPhotos() -> fetchData()
               fetchData();
           } else {
               const err = await response.json();
@@ -479,9 +547,21 @@ export default function MediaGalleryScreen() {
     }
   };
 
+  // --- YENİ EKLENEN: TEKLİ KAYDETME ---
   const handleSaveToGallery = async () => {
-    setShowOptions(false);
-    Alert.alert("Bilgi", "Galeriye kaydetme simülasyonu başarılı.");
+    setShowOptions(false); // Menüyü kapat
+    const currentMedia = photos[currentIndex];
+    
+    if (!currentMedia) return;
+
+    // İşlem başladığını hissettirmek için basit bir uyarı veya direkt işlem
+    const success = await saveFileToGallery(currentMedia.url);
+
+    if (success) {
+        Alert.alert("Başarılı", "Medya galeriye kaydedildi.");
+    } else {
+        Alert.alert("Hata", "Kaydetme işlemi başarısız oldu.");
+    }
   };
 
   const handleRemove = () => {
@@ -677,7 +757,7 @@ export default function MediaGalleryScreen() {
                     </TouchableOpacity>
                     <Text style={mediaStyles.headerTitle}>Medya</Text>
                     <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                        {/* YENİ: FİLTRE BUTONU */}
+                        {/* FİLTRE BUTONU */}
                         <TouchableOpacity style={{marginRight: 15}} onPress={handleOpenFilter}>
                             <Ionicons name="filter" size={24} color="#fff" />
                         </TouchableOpacity>
