@@ -5,6 +5,7 @@ from werkzeug.utils import secure_filename
 from db import get_db_connection
 from PIL import Image, ImageOps
 import cv2 
+from datetime import datetime
 
 photos_bp = Blueprint('photos', __name__)
 
@@ -104,8 +105,8 @@ def upload_photo():
 
             create_thumbnail(save_path, filename)
 
-            sql = "INSERT INTO photos (file_name, user_id, group_id) VALUES (%s, %s, %s)"
-            cursor.execute(sql, (filename, user_id, group_id))
+            sql = "INSERT INTO photos (file_name, user_id, group_id, upload_date) VALUES (%s, %s, %s, %s)"
+            cursor.execute(sql, (filename, user_id, group_id, datetime.utcnow()))
             conn.commit()
 
             # --- NOTIFICATION LOGIC ---
@@ -206,7 +207,7 @@ def get_group_photos():
                 "uploader_id": photo['uploader_id'],
                 "uploaded_by": photo['username'],
                 "user_avatar": photo['profile_image'],
-                "date": photo['upload_date']
+                "date": photo['upload_date'].isoformat() + 'Z'
             })
 
         cursor.close(); conn.close()

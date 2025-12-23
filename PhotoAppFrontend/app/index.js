@@ -7,6 +7,7 @@ import {
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage'; 
 import * as Notifications from 'expo-notifications';
+import 'react-native-gesture-handler';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants'; // Constants eklendi
 import API_URL from '../config';
