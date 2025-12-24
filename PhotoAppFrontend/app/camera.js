@@ -143,6 +143,7 @@ export default function CameraScreen() {
         // Start actual recording
         const video = await cameraRef.current.recordAsync({
             quality: '2160p', // 4K if supported, otherwise highest available
+            codec: 'hevc',
         });
         // This line runs only AFTER recording stops (promise resolves on stop)
         uploadMediaBackground(video.uri, 'video');
