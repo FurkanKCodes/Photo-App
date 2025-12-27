@@ -70,40 +70,52 @@ export default function CameraScreen() {
   const uploadMediaBackground = async (uri, type) => {
     if (!uri) return;
     
-    // Log to console (English for workspace)
     console.log(`[Upload] Starting: ${type}`);
 
-    // Create a FormData object to send file + data as multipart/form-data
     const formData = new FormData();
     const filename = uri.split('/').pop();
     const mimeType = type === 'video' ? 'video/mp4' : 'image/jpeg';
     
-    // Append required fields for the backend
     formData.append('user_id', userId);
     formData.append('group_id', groupId);
     
-    // Append the actual file
     formData.append('photo', {
-      uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri, // Fix file path for iOS
+      uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri,
       name: filename,
       type: mimeType,
     });
 
     try {
-      // Send to Backend (Async operation, does not block UI)
-      // Note: This promise is not awaited, so the UI remains responsive immediately
-      fetch(`${API_URL}/upload-photo`, {
+      // Changed from .then() chain to await to handle logic better
+      const response = await fetch(`${API_URL}/upload-photo`, {
         method: 'POST',
         headers: { 
             'Content-Type': 'multipart/form-data',
             'ngrok-skip-browser-warning': 'true' 
         },
         body: formData,
-      }).then(res => {
-          console.log("[Upload] Server Response:", res.status);
-      }).catch(err => {
-          console.error("[Upload] Error:", err);
       });
+
+      // --- LIMIT CHECK LOGIC ---
+      if (response.status === 403) {
+          const data = await response.json();
+          if (data.error === 'LIMIT_EXCEEDED_PHOTO') {
+              Alert.alert("Demo!", "Günlük fotoğraf sınırı aşıldı");
+          } else if (data.error === 'LIMIT_EXCEEDED_VIDEO') {
+              Alert.alert("Demo!", "Günlük Video sınırı aşıldı");
+          } else {
+              // Other 403 errors (e.g. not a member)
+              console.log("[Upload] Permission Error:", data.error);
+          }
+          return; // Stop execution
+      }
+      // -------------------------
+
+      if (response.ok) {
+        console.log("[Upload] Success");
+      } else {
+        console.log("[Upload] Server Error:", response.status);
+      }
 
     } catch (e) { console.error(e); }
   };
@@ -133,22 +145,62 @@ export default function CameraScreen() {
   };
 
   // Logic to start video recording
+  // Logic to start video recording
   const startVideo = async () => {
     if (cameraRef.current) {
+      // Internal Log: English
+      console.log("[Video] Attempting to start recording process..."); 
+      
       setIsRecording(true);
       setDuration(0);
-      // Start a 1-second interval to update the UI timer
       timerRef.current = setInterval(() => setDuration(s => s + 1), 1000);
+      
       try {
-        // Start actual recording
+        // 1. ATTEMPT: High Quality (4K + HEVC)
+        // This is the preferred setting for capable devices.
+        console.log("[Video] Trying High Quality (4K/HEVC)...");
         const video = await cameraRef.current.recordAsync({
-            quality: '2160p', // 4K if supported, otherwise highest available
+            quality: '2160p',
             codec: 'hevc',
         });
-        // This line runs only AFTER recording stops (promise resolves on stop)
-        uploadMediaBackground(video.uri, 'video');
-      } catch (e) { stopVideo(); }
+        
+        handleVideoRecordSuccess(video);
+
+      } catch (e) { 
+          // 2. FALLBACK: If High Quality fails (Emulator or Older Device)
+          // Log the warning in English
+          console.warn("[Video] High Quality failed, falling back to standard settings...", e);
+          
+          try {
+             // Retry with safer settings (1080p usually works on emulators)
+             const videoFallback = await cameraRef.current.recordAsync({
+                 quality: '1080p',
+                 // No codec specified, let OS choose default
+             });
+             
+             handleVideoRecordSuccess(videoFallback);
+             
+          } catch (fallbackError) {
+             // FATAL ERROR: Even fallback failed
+             console.error("[Video] Fatal: Could not record video even with fallback settings.", fallbackError);
+             
+             // UI Alert: Turkish (User Facing)
+             Alert.alert("Hata", "Video kaydı başlatılamadı. Cihazınız desteklemiyor olabilir.");
+             stopVideo();
+          }
+      }
     }
+  };
+
+  // Helper function to avoid code duplication
+  const handleVideoRecordSuccess = async (video) => {
+      console.log("[Video] Recording finished successfully, URI:", video.uri);
+      
+      if (video.uri) {
+          await uploadMediaBackground(video.uri, 'video');
+      } else {
+          console.error("[Video] Error: Video URI is empty/null.");
+      }
   };
 
   // Logic to stop video recording

@@ -44,7 +44,8 @@
         }
       ],
       "@react-native-firebase/app",
-      "@react-native-firebase/auth"
+      "@react-native-firebase/auth",
+      "@react-native-firebase/app-check"
     ],
     "experiments": {
       "typedRoutes": true,

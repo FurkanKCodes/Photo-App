@@ -317,13 +317,31 @@ export default function MediaGalleryScreen() {
         type: type,
       });
 
-      await fetch(`${API_URL}/upload-photo`, {
+      const response = await fetch(`${API_URL}/upload-photo`, {
         method: 'POST',
         headers: { 'Content-Type': 'multipart/form-data' },
         body: formData,
       });
+
+      // --- LIMIT CHECK LOGIC ---
+      if (response.status === 403) {
+          const data = await response.json();
+          
+          if (data.error === 'LIMIT_EXCEEDED_PHOTO') {
+              Alert.alert("Demo!", "Günlük fotoğraf sınırı aşıldı. Kalanlar yüklenmedi.");
+          } else if (data.error === 'LIMIT_EXCEEDED_VIDEO') {
+              Alert.alert("Demo!", "Günlük video sınırı aşıldı. Kalanlar yüklenmedi.");
+          }
+          
+          return false; // 
+      }
+      // ---------------------------------------
+
+      return true; 
+
     } catch (error) {
       console.error("Upload failed:", error);
+      return true; 
     }
   };
 

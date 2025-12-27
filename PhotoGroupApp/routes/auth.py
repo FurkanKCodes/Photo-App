@@ -57,13 +57,13 @@ def register():
             return jsonify({"error": "This phone number has been banned from the system."}), 403
 
         # 2. CHECK IF USER EXISTS
-        cursor.execute("SELECT id FROM users WHERE email = %s OR username = %s OR phone_number = %s", (email, username, phone_number))
+        cursor.execute("SELECT id FROM users WHERE email = %s OR phone_number = %s", (email, phone_number))
         existing_user = cursor.fetchone()
         
         if existing_user:
             cursor.close()
             conn.close()
-            return jsonify({"message": "User with this email, username, or phone already exists"}), 409
+            return jsonify({"message": "User with this email, or phone already exists"}), 409
 
         hashed_password = generate_password_hash(password)
 
@@ -139,7 +139,11 @@ def get_user():
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         # ADDED is_super_admin to SELECT
-        cursor.execute("SELECT id, username, email, phone_number, profile_image, is_super_admin FROM users WHERE id = %s", (user_id,))
+        cursor.execute("""
+            SELECT id, username, email, phone_number, profile_image, is_super_admin, 
+                   plan, daily_photo_count, daily_video_count, last_upload_date 
+            FROM users WHERE id = %s
+        """, (user_id,))
         user = cursor.fetchone()
         
         # Add URLs

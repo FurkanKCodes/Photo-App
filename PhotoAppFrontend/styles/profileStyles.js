@@ -1,4 +1,6 @@
-import { StyleSheet, Platform, StatusBar } from 'react-native';
+import { StyleSheet, Platform, StatusBar, Dimensions } from 'react-native';
+
+const { width, height } = Dimensions.get('window');
 
 const profileStyles = StyleSheet.create({
   container: {
@@ -41,7 +43,7 @@ const profileStyles = StyleSheet.create({
   profileInfoContainer: {
     alignItems: 'center',
     marginTop: 30,
-    marginBottom: 40,
+    marginBottom: 20, // Reduced slightly to fit stats
   },
   largeProfileImage: {
     width: 120,
@@ -63,9 +65,43 @@ const profileStyles = StyleSheet.create({
     fontWeight: '600',
   },
 
+  // --- NEW: INFO STRIP STYLES ---
+  infoStripContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff', 
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    marginTop: 15,
+    width: '90%', 
+    alignSelf: 'center',
+  },
+  infoStripItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  infoLabel: {
+    fontSize: 14,
+    color: '#000',
+    fontWeight: '400',
+  },
+  infoValue: {
+    fontSize: 14,
+    color: '#000',
+    fontWeight: 'bold',
+  },
+  verticalDivider: {
+    width: 1,
+    height: '100%',
+    backgroundColor: '#000',
+    marginHorizontal: 15,
+  },
+
   // --- SETTINGS LIST SECTION ---
   settingsContainer: {
     paddingHorizontal: 20,
+    marginTop: 20,
   },
   settingItem: {
     flexDirection: 'row',
@@ -87,6 +123,28 @@ const profileStyles = StyleSheet.create({
   settingText: {
     fontSize: 16,
     color: '#333',
+  },
+  deleteAccountText: {
+    // optional specific style
+  },
+
+  // --- FULL SCREEN MODAL ---
+  fullScreenContainer: {
+    flex: 1,
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullScreenImage: {
+    width: width,
+    height: height,
+  },
+  fullScreenCloseButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 60 : 40,
+    left: 20,
+    zIndex: 10,
+    padding: 10,
   },
 });
 

@@ -73,7 +73,7 @@ def create_thumbnail(file_path, filename):
         return None
 
 # ==========================================
-# UPLOAD PHOTO (UPDATED WITH PUSH NOTIFICATION)
+# UPLOAD PHOTO (UPDATED WITH LAZY RESET LIMITS)
 # ==========================================
 @photos_bp.route('/upload-photo', methods=['POST'])
 def upload_photo():
@@ -90,13 +90,57 @@ def upload_photo():
     if allowed_file(file.filename):
         try:
             conn = get_db_connection()
-            cursor = conn.cursor(dictionary=True) # Use dictionary cursor for easy access
+            cursor = conn.cursor(dictionary=True)
 
             # Check membership
             cursor.execute("SELECT id FROM groups_members WHERE user_id = %s AND group_id = %s", (user_id, group_id))
             if not cursor.fetchone():
                 cursor.close(); conn.close()
                 return jsonify({"error": "You are not a member of this group"}), 403
+
+            # --- START: LAZY RESET & LIMIT CHECK LOGIC ---
+            
+            # Determine if it is video or photo based on extension
+            ext = file.filename.rsplit('.', 1)[1].lower()
+            is_video = ext in ['mp4', 'mov', 'avi', 'm4v']
+            
+            # Get current UTC date
+            today = datetime.utcnow().date()
+            
+            # Fetch user stats
+            cursor.execute("SELECT daily_photo_count, daily_video_count, last_upload_date FROM users WHERE id = %s", (user_id,))
+            user_stats = cursor.fetchone()
+            
+            if user_stats:
+                db_date = user_stats['last_upload_date']
+                
+                # LAZY RESET: If date is None (new user) or old date (yesterday etc.)
+                if db_date is None or db_date < today:
+                    # Reset counters and update date to today
+                    cursor.execute("""
+                        UPDATE users 
+                        SET daily_photo_count = 0, daily_video_count = 0, last_upload_date = %s 
+                        WHERE id = %s
+                    """, (today, user_id))
+                    conn.commit()
+                    # Update local variables for the check below
+                    current_p_count = 0
+                    current_v_count = 0
+                else:
+                    current_p_count = user_stats['daily_photo_count']
+                    current_v_count = user_stats['daily_video_count']
+
+                # LIMIT CHECK
+                if is_video:
+                    if current_v_count >= 2:
+                        cursor.close(); conn.close()
+                        return jsonify({"error": "LIMIT_EXCEEDED_VIDEO"}), 403
+                else:
+                    if current_p_count >= 10:
+                        cursor.close(); conn.close()
+                        return jsonify({"error": "LIMIT_EXCEEDED_PHOTO"}), 403
+            
+            # --- END: LAZY RESET & LIMIT CHECK LOGIC ---
 
             filename = secure_filename(file.filename)
             upload_folder = current_app.config['UPLOAD_FOLDER']
@@ -107,9 +151,17 @@ def upload_photo():
 
             sql = "INSERT INTO photos (file_name, user_id, group_id, upload_date) VALUES (%s, %s, %s, %s)"
             cursor.execute(sql, (filename, user_id, group_id, datetime.utcnow()))
+            
+            # --- INCREMENT COUNTER AFTER SUCCESSFUL INSERT ---
+            if is_video:
+                cursor.execute("UPDATE users SET daily_video_count = daily_video_count + 1 WHERE id = %s", (user_id,))
+            else:
+                cursor.execute("UPDATE users SET daily_photo_count = daily_photo_count + 1 WHERE id = %s", (user_id,))
+            
             conn.commit()
+            # -------------------------------------------------
 
-            # --- NOTIFICATION LOGIC ---
+            # ... (NOTIFICATION LOGIC AYNEN KALIYOR) ...
             # Get Group Info & Uploader Info
             cursor.execute("SELECT group_name FROM groups_table WHERE id = %s", (group_id,))
             group_row = cursor.fetchone()
@@ -121,7 +173,6 @@ def upload_photo():
                 group_name = group_row['group_name']
                 uploader_name = user_row['username']
 
-                # Get all OTHER group members with push tokens
                 sql_members = """
                     SELECT u.push_token 
                     FROM users u
@@ -141,8 +192,7 @@ def upload_photo():
                     data_payload = {"screen": "MediaGallery", "groupId": group_id}
                     
                     send_expo_push_notification(tokens, title, body, data_payload)
-            # --------------------------
-
+            
             cursor.close(); conn.close()
 
             return jsonify({"message": "File uploaded successfully", "filename": filename}), 201

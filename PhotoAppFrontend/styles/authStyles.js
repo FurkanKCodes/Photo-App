@@ -1,6 +1,7 @@
 import { StyleSheet, Dimensions } from 'react-native';
 
-const { width } = Dimensions.get('window');
+// FIX: Added 'height' to destructuring so it can be used in styles below
+const { width, height } = Dimensions.get('window');
 
 const authStyles = StyleSheet.create({
   container: {
@@ -95,7 +96,7 @@ const authStyles = StyleSheet.create({
   // --- MODAL (POP-UP) STYLES ---
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)', // Arka planı karartma
+    backgroundColor: 'rgba(0,0,0,0.5)', // Dimmed background
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -129,9 +130,9 @@ const authStyles = StyleSheet.create({
     padding: 15,
     borderRadius: 10,
     fontSize: 18,
-    textAlign: 'center', // Kodu ortala
+    textAlign: 'center', // Center the code
     marginBottom: 20,
-    letterSpacing: 5, // Rakamlar arası boşluk
+    letterSpacing: 5, // Space between digits
     fontWeight: 'bold',
   },
   modalButton: {
@@ -149,6 +150,85 @@ const authStyles = StyleSheet.create({
   modalCancelText: {
     color: 'red',
     fontSize: 16,
+  },
+
+  // --- CHECKBOX & AGREEMENT STYLES ---
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start', // Align text to top if multiline
+    marginBottom: 20,
+    width: '100%',
+    paddingHorizontal: 5,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 12, // Circular
+    borderWidth: 2,
+    borderColor: '#aaa',
+    marginRight: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2, // Slight adjustment for text alignment
+  },
+  checkboxSelected: {
+    backgroundColor: '#007AFF', // Blue fill when selected
+    borderColor: '#007AFF',
+  },
+  checkboxTextContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap', // Wrap text if it exceeds width
+  },
+  checkboxLabel: {
+    color: '#555',
+    fontSize: 14,
+  },
+  checkboxLink: {
+    color: '#007AFF', // Blue link color
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+
+  // --- DOCUMENT MODAL STYLES (Terms/Privacy Pop-up) ---
+  docModalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  docModalContent: {
+    width: width * 0.9,
+    height: height * 0.8, // Covers 80% of screen height
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  docModalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    textAlign: 'center',
+    color: '#333',
+  },
+  docScrollView: {
+    marginBottom: 15,
+  },
+  docText: {
+    fontSize: 14,
+    color: '#333',
+    lineHeight: 22,
+  },
+  docCloseButton: {
+    backgroundColor: '#007AFF',
+    padding: 12,
+    borderRadius: 10,
+    alignItems: 'center',
   },
 });
 
