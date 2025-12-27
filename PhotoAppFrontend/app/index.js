@@ -9,7 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import 'react-native-gesture-handler';
 import * as Device from 'expo-device';
-import Constants from 'expo-constants'; // Constants eklendi
+import Constants from 'expo-constants'; 
 import API_URL from '../config';
 
 // Bildirim ayarları
@@ -23,7 +23,8 @@ Notifications.setNotificationHandler({
 
 export default function LoginScreen() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
+  
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true); 
@@ -71,28 +72,18 @@ export default function LoginScreen() {
         return;
       }
 
-      // --- DÜZELTME BURADA ---
       try {
-          // Expo Project ID'nizi buraya yazmanız gerekebilir.
-          // Eğer app.json içinde "eas": {"projectId": "..."} tanımlıysa otomatik alır.
-          // Tanımlı değilse manuel yazmalısınız:
-          // const projectId = "SENIN-GERCEK-PROJECT-ID-BURAYA";
-          
-          // Şimdilik Constants'tan çekmeyi deniyoruz, yoksa hata vermemesi için catch'e düşecek.
           const projectId = Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
 
           token = (await Notifications.getExpoPushTokenAsync({
-            projectId: projectId // Eğer projectId null ise ve app.json'da yoksa yine hata verebilir, aşağıda yakalıyoruz.
+            projectId: projectId 
           })).data;
           
           console.log("Push Token Alındı:", token);
       } catch (error) {
-          // Giriş işlemini engellememesi için hatayı sadece logluyoruz
           console.log("Bildirim Token Hatası (Login Engellenmedi):", error.message);
-          // Kullanıcıya hissettirmeden null dönüyoruz
           token = null; 
       }
-      // -----------------------
     } else {
       console.log('Must use physical device for Push Notifications');
     }
@@ -117,10 +108,13 @@ export default function LoginScreen() {
   };
 
   const handleLogin = async () => {
-    if (!email || !password) {
+    if (!phoneNumber || !password) {
       Alert.alert('Hata', 'Lütfen tüm alanları doldurun.');
       return;
     }
+
+    // Backend'e gönderirken başına +90 ekliyoruz
+    const formattedPhoneNumber = `+90${phoneNumber}`;
 
     setLoading(true);
     try {
@@ -130,13 +124,12 @@ export default function LoginScreen() {
             'Content-Type': 'application/json',
             'ngrok-skip-browser-warning': 'true'
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ phone_number: formattedPhoneNumber, password }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
-        // Save user session
         const userData = {
             id: data.user_id,
             username: data.username,
@@ -144,7 +137,6 @@ export default function LoginScreen() {
         };
         await AsyncStorage.setItem('user_session', JSON.stringify(userData));
 
-        // --- BİLDİRİM TOKEN AL VE KAYDET (HATA OLSA BİLE DEVAM ET) ---
         try {
             const token = await registerForPushNotificationsAsync();
             if (token) {
@@ -193,15 +185,21 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.formContainer}>
-          <TextInput
-            style={styles.input}
-            placeholder="E-posta"
-            placeholderTextColor="#999"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
+          
+          {/* --- TELEFON GİRİŞ ALANI (TEK CONTAINER GÖRÜNÜMÜ) --- */}
+          <View style={styles.phoneInputContainer}>
+            <Text style={styles.countryCode}>+90</Text>
+            <TextInput
+              style={styles.phoneInput}
+              placeholder="Telefon Numarası (555...)"
+              placeholderTextColor="#999"
+              value={phoneNumber}
+              onChangeText={setPhoneNumber}
+              keyboardType="number-pad"
+              maxLength={10} 
+            />
+          </View>
+
           <TextInput
             style={styles.input}
             placeholder="Şifre"
@@ -213,6 +211,10 @@ export default function LoginScreen() {
 
           <TouchableOpacity style={styles.button} onPress={handleLogin} disabled={loading}>
             {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Giriş Yap</Text>}
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => router.push('/ForgotPasswordScreen')} style={{marginBottom: 15}}>
+            <Text style={styles.linkText}>Şifremi Unuttum</Text>
           </TouchableOpacity>
 
           <TouchableOpacity onPress={() => router.push('/register')}>
@@ -234,7 +236,44 @@ const styles = StyleSheet.create({
   logo: { width: 100, height: 100, marginBottom: 10 },
   title: { fontSize: 28, fontWeight: 'bold', color: '#333' },
   formContainer: { width: '100%' },
-  input: { height: 50, borderColor: '#ddd', borderWidth: 1, borderRadius: 8, paddingHorizontal: 15, marginBottom: 15, fontSize: 16, backgroundColor: '#f9f9f9' },
+  
+  // Normal Input Stili (Şifre vb. için)
+  input: { 
+    height: 50, 
+    borderColor: '#ddd', 
+    borderWidth: 1, 
+    borderRadius: 8, 
+    paddingHorizontal: 15, 
+    marginBottom: 15, 
+    fontSize: 16, 
+    backgroundColor: '#f9f9f9' 
+  },
+
+  // Yeni Telefon Input Container Yapısı
+  phoneInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    height: 50,
+    borderColor: '#ddd',
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: '#f9f9f9',
+    paddingHorizontal: 15,
+    marginBottom: 15
+  },
+  countryCode: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginRight: 10
+  },
+  phoneInput: {
+    flex: 1,
+    height: '100%',
+    fontSize: 16,
+    color: '#333'
+  },
+
   button: { backgroundColor: '#007AFF', height: 50, borderRadius: 8, justifyContent: 'center', alignItems: 'center', marginBottom: 15 },
   buttonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
   linkText: { color: '#007AFF', textAlign: 'center', fontSize: 16 },

@@ -1,4 +1,6 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, Dimensions } from 'react-native';
+
+const { width } = Dimensions.get('window');
 
 const authStyles = StyleSheet.create({
   container: {
@@ -39,7 +41,7 @@ const authStyles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#f9f9f9',
     borderRadius: 10,
-    marginBottom: 5, // Reduced margin for error text
+    marginBottom: 5, 
     borderWidth: 1,
     borderColor: '#eee',
     width: '100%',
@@ -60,7 +62,7 @@ const authStyles = StyleSheet.create({
   errorText: {
     color: 'red',
     fontSize: 12,
-    marginBottom: 10, // Margin before next input
+    marginBottom: 10, 
     marginLeft: 5,
     alignSelf: 'flex-start',
   },
@@ -74,7 +76,7 @@ const authStyles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonDisabled: {
-    backgroundColor: '#a0c4ff', // Lighter blue for inactive state
+    backgroundColor: '#a0c4ff', 
     opacity: 0.7,
   },
   buttonText: {
@@ -87,6 +89,65 @@ const authStyles = StyleSheet.create({
   },
   linkText: {
     color: '#007AFF',
+    fontSize: 16,
+  },
+
+  // --- MODAL (POP-UP) STYLES ---
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)', // Arka planı karartma
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: width * 0.85,
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 25,
+    alignItems: 'center',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#333',
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalInput: {
+    width: '100%',
+    backgroundColor: '#f1f1f1',
+    padding: 15,
+    borderRadius: 10,
+    fontSize: 18,
+    textAlign: 'center', // Kodu ortala
+    marginBottom: 20,
+    letterSpacing: 5, // Rakamlar arası boşluk
+    fontWeight: 'bold',
+  },
+  modalButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 10,
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  modalCancelButton: {
+    paddingVertical: 10,
+  },
+  modalCancelText: {
+    color: 'red',
     fontSize: 16,
   },
 });
