@@ -279,7 +279,7 @@ export default function HomeScreen() {
         />
       </TouchableOpacity>
       
-      <Text style={homeStyles.headerTitle}>OuRola</Text>
+      <Text style={homeStyles.headerTitle}>İsimÇokZor</Text>
       
       {/* Add Button */}
       <TouchableOpacity style={homeStyles.addButton} onPress={() => setModalVisible(true)}>
@@ -303,7 +303,7 @@ export default function HomeScreen() {
                 <Image source={{ uri: thumbUrl }} style={homeStyles.groupImage} />
             ) : (
                 <View style={homeStyles.groupIconPlaceholder}>
-                    <Ionicons name="people" size={24} color="#fff" />
+                    <Ionicons name="people" size={24} color="#000000" />
                 </View>
             )}
         </TouchableOpacity>
@@ -350,7 +350,7 @@ export default function HomeScreen() {
             
             {/* Close Button */}
             <TouchableOpacity style={homeStyles.closeButton} onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#555" />
+                <Ionicons name="close" size={24} color="#ffffff" />
             </TouchableOpacity>
 
             {/* Tabs */}
@@ -394,10 +394,10 @@ export default function HomeScreen() {
                             onChangeText={setNewGroupName}
                         />
 
-                        <Text style={homeStyles.label}>Açıklama: (Maks: 255 karakter)</Text>
+                        <Text style={homeStyles.label}>Açıklama: (isteğe bağlı)</Text>
                         <TextInput 
                             style={homeStyles.input} 
-                            placeholder="Grup açıklaması (İsteğe bağlı)" 
+                            placeholder="Grup açıklaması (Maks 255 karakter)" 
                             value={newGroupDescription} 
                             onChangeText={setNewGroupDescription}
                             maxLength={255}
@@ -459,7 +459,7 @@ export default function HomeScreen() {
       {/* --- GROUP LIST --- */}
       <View style={homeStyles.content}>
         {loading ? (
-          <ActivityIndicator size="large" color="#007AFF" style={{ marginTop: 50 }} />
+          <ActivityIndicator size="large" color="#FFFFFF" style={{ marginTop: 50 }} />
         ) : (
           <FlatList
             data={groups}

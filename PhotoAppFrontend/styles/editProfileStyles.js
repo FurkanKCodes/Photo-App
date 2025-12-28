@@ -11,7 +11,7 @@ const editProfileStyles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 65 : StatusBar.currentHeight + 25,
     paddingBottom: 15,
     paddingHorizontal: 20,
-    backgroundColor: '#007AFF', 
+    backgroundColor: '#1a1a1a', 
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between', 
@@ -23,14 +23,14 @@ const editProfileStyles = StyleSheet.create({
     zIndex: 1,
   },
   backButton: {
-    width: 60, // Increased touch area
+    width: 40, // Increased touch area
     height: 40,
     alignItems: 'flex-start',
     justifyContent: 'center',
   },
   headerTitle: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 27,
     fontWeight: 'bold',
     textAlign: 'center',
     flex: 1, 
@@ -39,7 +39,7 @@ const editProfileStyles = StyleSheet.create({
   saveButton: {
     width: 60,
     paddingVertical: 6,
-    backgroundColor: '#fff',
+    backgroundColor: '#000',
     borderRadius: 15,
     justifyContent: 'center',
     alignItems: 'center',
@@ -53,10 +53,10 @@ const editProfileStyles = StyleSheet.create({
     fontWeight: 'bold',
   },
   saveTextActive: {
-    color: '#007AFF', 
+    color: '#FFF', 
   },
   saveTextInactive: {
-    color: '#888', 
+    color: '#000', 
   },
 
   // --- CONTENT CONTAINER ---
@@ -75,12 +75,12 @@ const editProfileStyles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     borderWidth: 3,
-    borderColor: '#007AFF', 
+    borderColor: '#FFFFFF', 
     marginBottom: 10,
   },
   changePhotoText: {
     fontSize: 16,
-    color: '#007AFF',
+    color: '#FFF',
     fontWeight: '600',
     marginTop: 5,
   },
@@ -96,7 +96,7 @@ const editProfileStyles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 14,
-    color: '#666',
+    color: '#cccccc',
     marginBottom: 8,
     fontWeight: 'bold',
     textAlign: 'left', // Ensure text aligns left
@@ -104,10 +104,11 @@ const editProfileStyles = StyleSheet.create({
   },
   inputField: {
     borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
+    backgroundColor: '#transparent',
+    borderBottomColor: '#666',
     paddingVertical: 10,
-    fontSize: 16,
-    color: '#000',
+    fontSize: 18,
+    color: '#ffffff',
     width: '100%',
     textAlign: 'left',
   },
@@ -117,12 +118,13 @@ const editProfileStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
+    backgroundColor: '#FFF',
+    borderBottomColor: '#FFF',
     width: '100%',
   },
   phonePrefix: {
     fontSize: 16,
-    color: '#555',
+    color: '#000',
     marginRight: 10,
     paddingVertical: 10,
   },

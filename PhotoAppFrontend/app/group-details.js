@@ -9,6 +9,7 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Clipboard from 'expo-clipboard'; 
 import API_URL from '../config';
 import groupDetailsStyles from '../styles/groupDetailsStyles';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const defaultGroupImage = require('../assets/no-pic.jpg'); 
 const defaultUserImage = require('../assets/no-pic.jpg');
@@ -353,98 +354,111 @@ export default function GroupDetailsScreen() {
       );
   };
 
-  if (loading) return <ActivityIndicator size="large" color="#007AFF" style={{flex:1}} />;
 
   const groupThumb = groupDetails?.thumbnail_url || groupDetails?.picture_url;
   const groupOriginal = groupDetails?.picture_url;
   const isJoiningOpen = groupDetails?.is_joining_active === 1;
 
   return (
-    <View style={groupDetailsStyles.container}>
-      <StatusBar backgroundColor="#007AFF" barStyle="light-content" />
+    <LinearGradient 
+      colors={['#4e4e4e', '#1a1a1a']} 
+      style={groupDetailsStyles.container}
+    >
+      <StatusBar backgroundColor="#1a1a1a" barStyle="light-content" />
 
-      {/* HEADER */}
+      {/* --- HEADER --- */}
       <View style={groupDetailsStyles.headerContainer}>
         <TouchableOpacity style={groupDetailsStyles.backButton} onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={32} color="#fff" />
         </TouchableOpacity>
+        {/* Show group name or empty if loading */}
         <Text style={groupDetailsStyles.headerTitle}>{groupDetails?.group_name}</Text>
         <TouchableOpacity style={groupDetailsStyles.mediaButton} onPress={() => router.push({ pathname: '/media-gallery', params: { groupId, userId } })}>
-            <Text style={{ color: '#007AFF', fontWeight: 'bold' }}>Medya</Text>
+            <Text style={{ color: '#FFF', fontWeight: 'bold' }}>Medya</Text>
         </TouchableOpacity>
       </View>
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 150 }}> 
-        {/* 1. GROUP INFO */}
-        <View style={groupDetailsStyles.groupInfoContainer}>
-            <TouchableOpacity onPress={() => groupOriginal && handleImagePress(groupOriginal)}>
-                <Image source={groupThumb ? { uri: groupThumb } : defaultGroupImage} style={groupDetailsStyles.largeGroupImage} />
-            </TouchableOpacity>
-            <Text style={groupDetailsStyles.groupNameText}>{groupDetails?.group_name}</Text>
+      {/* --- LOADING STATE CONTROL --- */}
+      {loading ? (
+          // Loading View: Centered white spinner on dark background
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+              <ActivityIndicator size="large" color="#FFFFFF" />
+          </View>
+      ) : (
+          // Content View: Your existing ScrollView content
+          <ScrollView contentContainerStyle={{ paddingBottom: 150 }}> 
             
-            {/* GROUP DESCRIPTION DISPLAY */}
-            <Text style={groupDetailsStyles.groupDescriptionText}>
-                {groupDetails?.description || "Açıklama Yok"}
-            </Text>
-            
-            <TouchableOpacity onPress={copyGroupCode} style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 8 }}>
-                <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#000', marginRight: 5 }}>
-                    {groupDetails?.group_code}
+            {/* 1. GROUP INFO */}
+            <View style={groupDetailsStyles.groupInfoContainer}>
+                <TouchableOpacity onPress={() => groupOriginal && handleImagePress(groupOriginal)}>
+                    <Image source={groupThumb ? { uri: groupThumb } : defaultGroupImage} style={groupDetailsStyles.largeGroupImage} />
+                </TouchableOpacity>
+                <Text style={groupDetailsStyles.groupNameText}>{groupDetails?.group_name}</Text>
+                
+                {/* GROUP DESCRIPTION DISPLAY */}
+                <Text style={groupDetailsStyles.groupDescriptionText}>
+                    {groupDetails?.description || "Açıklama Yok"}
                 </Text>
-                <Ionicons name="copy-outline" size={18} color="#000" />
-            </TouchableOpacity>
-
-            {isAdmin && (
-                <TouchableOpacity onPress={handleEditGroupPress} style={groupDetailsStyles.editGroupButton}>
-                    <Text style={groupDetailsStyles.editGroupText}>Grubu Düzenle</Text>
-                </TouchableOpacity>
-            )}
-        </View>
-
-        {/* 2. MEMBERS LIST */}
-        <Text style={groupDetailsStyles.membersTitle}>Üyeler</Text>
-        <View>{members.map(member => renderMemberItem(member))}</View>
-
-        {/* 3. REQUESTS */}
-        <View style={groupDetailsStyles.sectionHeader}>
-            <Text style={groupDetailsStyles.membersTitle}>İstekler</Text>
-            <View style={groupDetailsStyles.toggleContainer}>
-                <View style={{alignItems: 'center', marginRight: 10}}>
-                    <Text style={groupDetailsStyles.toggleLabel}>Gruba Alımlar</Text>
-                    <Text style={[groupDetailsStyles.toggleStatus, {color: isJoiningOpen ? 'green' : 'red'}]}>
-                        {isJoiningOpen ? 'Açık' : 'Kapalı'}
+                
+                <TouchableOpacity onPress={copyGroupCode} style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 8 }}>
+                    <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#FFF', marginRight: 5 }}>
+                        {groupDetails?.group_code}
                     </Text>
-                </View>
-                <Switch trackColor={{ false: "#767577", true: "#81b0ff" }} thumbColor={isJoiningOpen ? "#007AFF" : "#f4f3f4"} onValueChange={handleToggleJoining} value={isJoiningOpen} />
-            </View>
-        </View>
-        <View>{requests.length > 0 ? (requests.map(req => renderRequestItem(req))) : (<Text style={groupDetailsStyles.emptyText}>Şuan bir istek bulunmamaktadır</Text>)}</View>
-
-        {/* 5. LEAVE & DELETE BUTTONS (Side by Side) */}
-        <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 30, paddingHorizontal: 20 }}>
-            {/* Delete Button (Admin Only) */}
-            {isAdmin && (
-                <TouchableOpacity 
-                    style={[groupDetailsStyles.leaveButton, { backgroundColor: '#333', marginRight: 10, flex: 1 }]} 
-                    onPress={handleDeleteGroup}
-                >
-                    <Ionicons name="trash-outline" size={24} color="#fff" />
-                    <Text style={groupDetailsStyles.leaveText}>Grubu Sil</Text>
+                    <Ionicons name="copy-outline" size={18} color="#FFF" />
                 </TouchableOpacity>
-            )}
 
-            {/* Leave Button */}
-            <TouchableOpacity 
-                style={[groupDetailsStyles.leaveButton, { flex: 1 }]} 
-                onPress={handleLeaveGroup}
-            >
-                <Ionicons name="log-out-outline" size={24} color="#fff" />
-                <Text style={groupDetailsStyles.leaveText}>Gruptan Ayrıl</Text>
-            </TouchableOpacity>
-        </View>
-      </ScrollView>
+                {isAdmin && (
+                    <TouchableOpacity onPress={handleEditGroupPress} style={groupDetailsStyles.editGroupButton}>
+                        <Text style={groupDetailsStyles.editGroupText}>Grubu Düzenle</Text>
+                    </TouchableOpacity>
+                )}
+            </View>
 
-      {/* --- MODALS --- */}
+            {/* 2. MEMBERS LIST */}
+            <Text style={groupDetailsStyles.membersTitle}>Üyeler</Text>
+            <View>{members.map(member => renderMemberItem(member))}</View>
+
+            {/* 3. REQUESTS */}
+            <View style={groupDetailsStyles.sectionHeader}>
+                <Text style={groupDetailsStyles.membersTitle}>İstekler</Text>
+                <View style={groupDetailsStyles.toggleContainer}>
+                    <View style={{alignItems: 'center', marginRight: 10}}>
+                        <Text style={groupDetailsStyles.toggleLabel}>Gruba Alımlar</Text>
+                        <Text style={[groupDetailsStyles.toggleStatus, {color: isJoiningOpen ? 'green' : 'red'}]}>
+                            {isJoiningOpen ? 'Açık' : 'Kapalı'}
+                        </Text>
+                    </View>
+                    <Switch trackColor={{ false: "#767577", true: "#81b0ff" }} thumbColor={isJoiningOpen ? "#007AFF" : "#f4f3f4"} onValueChange={handleToggleJoining} value={isJoiningOpen} />
+                </View>
+            </View>
+            <View>{requests.length > 0 ? (requests.map(req => renderRequestItem(req))) : (<Text style={groupDetailsStyles.emptyText}>Şuan bir istek bulunmamaktadır</Text>)}</View>
+
+            {/* 5. LEAVE & DELETE BUTTONS (Side by Side) */}
+            <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 30, paddingHorizontal: 20 }}>
+                {/* Delete Button (Admin Only) */}
+                {isAdmin && (
+                    <TouchableOpacity 
+                        style={[groupDetailsStyles.leaveButton, { backgroundColor: '#333', marginRight: 10, flex: 1 }]} 
+                        onPress={handleDeleteGroup}
+                    >
+                        <Ionicons name="trash-outline" size={24} color="#fff" />
+                        <Text style={groupDetailsStyles.leaveText}>Grubu Sil</Text>
+                    </TouchableOpacity>
+                )}
+
+                {/* Leave Button */}
+                <TouchableOpacity 
+                    style={[groupDetailsStyles.leaveButton, { flex: 1 }]} 
+                    onPress={handleLeaveGroup}
+                >
+                    <Ionicons name="log-out-outline" size={24} color="#fff" />
+                    <Text style={groupDetailsStyles.leaveText}>Gruptan Ayrıl</Text>
+                </TouchableOpacity>
+            </View>
+          </ScrollView>
+      )}
+
+      {/* --- MODALS (Outside of Loading Check) --- */}
       <Modal visible={isImageModalVisible} transparent={true} animationType="fade" onRequestClose={() => setImageModalVisible(false)}>
         <View style={groupDetailsStyles.modalContainer}>
             <TouchableOpacity style={groupDetailsStyles.modalCloseButton} onPress={() => setImageModalVisible(false)}>
@@ -460,8 +474,24 @@ export default function GroupDetailsScreen() {
             <View style={groupDetailsStyles.editModalHeader}>
                 <TouchableOpacity onPress={() => setEditModalVisible(false)}><Ionicons name="chevron-back" size={30} color="#fff" /></TouchableOpacity>
                 <Text style={groupDetailsStyles.editHeaderTitle}>Grubu Düzenle</Text>
-                <TouchableOpacity onPress={handleSaveChanges} disabled={!hasChanges || saving}>
-                    {saving ? <ActivityIndicator color="#fff" /> : <Text style={[groupDetailsStyles.saveText, hasChanges ? groupDetailsStyles.activeSave : groupDetailsStyles.inactiveSave]}>Kaydet</Text>}
+                <TouchableOpacity 
+                    style={[
+                        groupDetailsStyles.saveButton, 
+                        (!hasChanges || saving) && groupDetailsStyles.saveButtonDisabled
+                    ]}
+                    onPress={handleSaveChanges} 
+                    disabled={!hasChanges || saving}
+                >
+                    {saving ? (
+                        <ActivityIndicator size="small" color="#007AFF" />
+                    ) : (
+                        <Text style={[
+                            groupDetailsStyles.saveButtonText, 
+                            hasChanges ? groupDetailsStyles.saveTextActive : groupDetailsStyles.saveTextInactive
+                        ]}>
+                            Kaydet
+                        </Text>
+                    )}
                 </TouchableOpacity>
             </View>
             <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
@@ -476,9 +506,9 @@ export default function GroupDetailsScreen() {
                     </View>
                     <View style={groupDetailsStyles.inputContainer}>
                         <Text style={groupDetailsStyles.inputLabel}>Grup Adı:</Text>
-                        <TextInput style={groupDetailsStyles.input} value={editName} onChangeText={onNameChange} placeholder="Grup adı" />
+                        <TextInput style={groupDetailsStyles.input} value={editName} onChangeText={onNameChange} placeholder="Grup adı" placeholderTextColor="#666" />
                     </View>
-                    {/* NEW DESCRIPTION EDIT FIELD */}
+                    {/* DESCRIPTION EDIT FIELD */}
                     <View style={groupDetailsStyles.inputContainer}>
                         <Text style={groupDetailsStyles.inputLabel}>Açıklama (Maks: 255):</Text>
                         <TextInput 
@@ -486,6 +516,7 @@ export default function GroupDetailsScreen() {
                             value={editDescription} 
                             onChangeText={onDescriptionChange} 
                             placeholder="Grup açıklaması"
+                            placeholderTextColor="#666"
                             maxLength={255}
                             multiline
                         />
@@ -494,6 +525,6 @@ export default function GroupDetailsScreen() {
             </KeyboardAvoidingView>
         </View>
       </Modal>
-    </View>
+    </LinearGradient>
   );
 }

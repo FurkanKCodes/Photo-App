@@ -9,6 +9,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import API_URL from '../config';
 import editProfileStyles from '../styles/editProfileStyles';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const defaultProfileImage = require('../assets/no-pic.jpg');
 
@@ -26,7 +27,7 @@ export default function EditProfileScreen() {
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [isPhoneValid, setIsPhoneValid] = useState(true);
+  const [isEmailValid, setIsEmailValid] = useState(true);
 
   // --- FETCH USER DATA ---
   useEffect(() => {
@@ -57,6 +58,8 @@ export default function EditProfileScreen() {
           setEmail(data.email);
           setPhoneRaw(rawPhone);
           setProfilePic(picUrl);
+
+          setIsEmailValid(true);
         }
       } catch (error) {
         console.error("Error:", error);
@@ -77,20 +80,14 @@ export default function EditProfileScreen() {
     return isUsernameChanged || isEmailChanged || isPhoneChanged || isPicChanged;
   };
 
-  const validatePhone = (text) => {
-    const numericText = text.replace(/[^0-9]/g, '');
-    setPhoneRaw(numericText);
-    
-    // Validation: Invalid if not empty AND length < 10
-    if (numericText.length > 0 && numericText.length < 10) {
-        setIsPhoneValid(false);
-    } else {
-        setIsPhoneValid(true);
-    }
+  const handleEmailChange = (text) => {
+    setEmail(text);
+    const emailRegex = /^.+@.+\.com$/;
+    // Valid if empty (initial) or matches regex
+    setIsEmailValid(text.length === 0 || emailRegex.test(text));
   };
 
-  const isSaveActive = hasChanges() && isPhoneValid && phoneRaw.length === 10;
-
+  const isSaveActive = hasChanges() && isEmailValid && email.length > 0 && username.length > 0;
   // --- IMAGE PICKER FUNCTIONS ---
   const handlePhotoOptions = () => {
     Alert.alert(
@@ -190,8 +187,11 @@ export default function EditProfileScreen() {
   };
 
   return (
-    <View style={editProfileStyles.container}>
-      <StatusBar backgroundColor="#007AFF" barStyle="light-content" />
+    <LinearGradient 
+      colors={['#4e4e4e', '#1a1a1a']} 
+      style={editProfileStyles.container}
+    >
+      <StatusBar backgroundColor="#1a1a1a" barStyle="light-content" />
 
       {/* HEADER */}
       <View style={editProfileStyles.headerContainer}>
@@ -228,7 +228,7 @@ export default function EditProfileScreen() {
       >
         <ScrollView contentContainerStyle={editProfileStyles.scrollContent}>
             {loading ? (
-                <ActivityIndicator style={{ marginTop: 50 }} color="#007AFF" />
+                <ActivityIndicator style={{ marginTop: 50 }} color="#FFFFFF" />
             ) : (
                 <View>
                     
@@ -259,33 +259,18 @@ export default function EditProfileScreen() {
 
                         {/* EMAIL */}
                         <View style={editProfileStyles.inputGroup}>
-                            <Text style={editProfileStyles.inputLabel}>email:</Text>
+                            <Text style={editProfileStyles.inputLabel}>Email:</Text>
                             <TextInput 
                                 style={editProfileStyles.inputField}
                                 value={email}
-                                onChangeText={setEmail}
+                                onChangeText={handleEmailChange} // CHANGED: Use new handler
                                 placeholder="Email Adresi"
                                 keyboardType="email-address"
                                 autoCapitalize="none"
                             />
-                        </View>
-
-                        {/* PHONE NUMBER */}
-                        <View style={editProfileStyles.inputGroup}>
-                            <Text style={editProfileStyles.inputLabel}>Telefon Numarası:</Text>
-                            <View style={editProfileStyles.phoneContainer}>
-                                <Text style={editProfileStyles.phonePrefix}>+90</Text>
-                                <TextInput 
-                                    style={editProfileStyles.phoneInput}
-                                    value={phoneRaw}
-                                    onChangeText={validatePhone}
-                                    placeholder="5XX XXX XX XX"
-                                    keyboardType="number-pad"
-                                    maxLength={10}
-                                />
-                            </View>
-                            {!isPhoneValid && (
-                                <Text style={editProfileStyles.errorText}>Lütfen geçerli bir telefon numarası giriniz</Text>
+                            {/* NEW: Error Message */}
+                            {!isEmailValid && (
+                                <Text style={editProfileStyles.errorText}>Geçerli bir e-posta girin (@.com)</Text>
                             )}
                         </View>
 
@@ -294,6 +279,6 @@ export default function EditProfileScreen() {
             )}
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </LinearGradient>
   );
 }

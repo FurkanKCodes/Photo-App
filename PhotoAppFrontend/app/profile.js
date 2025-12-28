@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import API_URL from '../config'; 
 import profileStyles from '../styles/profileStyles';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const defaultProfileImage = require('../assets/no-pic.jpg');
 
@@ -212,28 +213,29 @@ export default function ProfileScreen() {
   const renderBlockedItem = ({ item }) => {
       const isMenuOpen = activeMenuId === item.blocked_id;
       return (
-          <View style={{ flexDirection: 'row', alignItems: 'center', padding: 15, borderBottomWidth: 1, borderBottomColor: '#f0f0f0', justifyContent: 'space-between' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', padding: 15, borderBottomWidth: 1, borderBottomColor: '#444', justifyContent: 'space-between' }}>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <Image 
                     source={item.thumbnail_url ? { uri: item.thumbnail_url } : defaultProfileImage} 
-                    style={{ width: 50, height: 50, borderRadius: 25, marginRight: 10, backgroundColor: '#eee' }}
+                    style={{ width: 50, height: 50, borderRadius: 25, marginRight: 10, backgroundColor: '#333' }}
                   />
-                  <Text style={{ fontSize: 16, fontWeight: '500' }}>{item.username}</Text>
+                  <Text style={{ fontSize: 16, fontWeight: '500', color: '#fff' }}>{item.username}</Text>
               </View>
               
               <View style={{ position: 'relative' }}>
                   <TouchableOpacity onPress={() => setActiveMenuId(isMenuOpen ? null : item.blocked_id)}>
-                      <Ionicons name="ellipsis-vertical" size={24} color="#888" />
+                      <Ionicons name="ellipsis-vertical" size={24} color="#ccc" />
                   </TouchableOpacity>
                   
                   {isMenuOpen && (
                       <View style={{
-                          position: 'absolute', right: 25, top: 0, backgroundColor: 'white', 
+                          position: 'absolute', right: 25, top: 0, backgroundColor: '#333', 
                           padding: 10, borderRadius: 5, elevation: 5, zIndex: 10, minWidth: 100,
-                          shadowColor: '#000', shadowOffset: {width:0,height:2}, shadowOpacity:0.2
+                          shadowColor: '#000', shadowOffset: {width:0,height:2}, shadowOpacity:0.2,
+                          borderColor: '#555', borderWidth: 1
                       }}>
                           <TouchableOpacity onPress={() => handleUnblockUser(item.blocked_id)}>
-                              <Text style={{ color: 'red' }}>Engeli Kaldır</Text>
+                              <Text style={{ color: '#fff' }}>Engeli Kaldır</Text>
                           </TouchableOpacity>
                       </View>
                   )}
@@ -243,8 +245,11 @@ export default function ProfileScreen() {
   };
 
   return (
-    <View style={profileStyles.container}>
-      <StatusBar backgroundColor="#007AFF" barStyle="light-content" />
+    <LinearGradient 
+      colors={['#4e4e4e', '#1a1a1a']} 
+      style={profileStyles.container}
+    >
+      <StatusBar backgroundColor="#1a1a1a" barStyle="light-content" />
 
       {/* --- HEADER --- */}
       <View style={profileStyles.headerContainer}>
@@ -258,7 +263,7 @@ export default function ProfileScreen() {
       <ScrollView>
         <View style={profileStyles.profileInfoContainer}>
           {loading ? (
-            <ActivityIndicator size="large" color="#007AFF" />
+            <ActivityIndicator size="large" color="#FFFFFF" />
           ) : (
             <>
               {/* Profile Image with Full Screen Logic */}
@@ -270,7 +275,7 @@ export default function ProfileScreen() {
               </TouchableOpacity>
 
               <Text style={profileStyles.usernameText}>{username}</Text>
-              <TouchableOpacity onPress={handleEditProfile} style={{ marginBottom: 15 }}>
+              <TouchableOpacity onPress={handleEditProfile} style={profileStyles.editProfileButton}>
                 <Text style={profileStyles.editProfileText}>Profili Düzenle</Text>
               </TouchableOpacity>
 
@@ -325,14 +330,14 @@ export default function ProfileScreen() {
 
           <TouchableOpacity style={profileStyles.settingItem} onPress={handleLogout}>
             <View style={profileStyles.settingLeft}>
-              <Ionicons name="log-out-outline" size={24} color="#007AFF" style={profileStyles.settingIcon} />
+              <Ionicons name="log-out-outline" size={24} color="#007AFF" marginRight={15} />
               <Text style={[profileStyles.settingText, {color: '#007AFF'}]}>Çıkış Yap</Text>
             </View>
           </TouchableOpacity>
 
           <TouchableOpacity style={profileStyles.settingItem} onPress={handleDeleteAccount}>
             <View style={profileStyles.settingLeft}>
-              <Ionicons name="trash-outline" size={24} color="#FF3B30" style={profileStyles.settingIcon} />
+              <Ionicons name="trash-outline" size={24} color="#FF3B30" marginRight={15} />
               <Text style={[profileStyles.settingText, profileStyles.deleteAccountText]}>Hesabı Sil</Text>
             </View>
           </TouchableOpacity>
@@ -344,7 +349,7 @@ export default function ProfileScreen() {
                 onPress={() => router.push({ pathname: '/admin-panel', params: { userId } })}
              >
                 <View style={profileStyles.settingLeft}>
-                    <Ionicons name="shield-checkmark-outline" size={24} color="#FF3B30" style={profileStyles.settingIcon} />
+                    <Ionicons name="shield-checkmark-outline" size={24} color="#FF3B30" marginRight={15} />
                     <Text style={[profileStyles.settingText, { color: '#FF3B30', fontWeight: 'bold' }]}>
                         Yönetici Paneli
                     </Text>
@@ -358,8 +363,11 @@ export default function ProfileScreen() {
 
       {/* --- BLOCKED USERS MODAL --- */}
       <Modal visible={blockedModalVisible} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setBlockedModalVisible(false)}>
-          <View style={{ flex: 1, backgroundColor: '#fff' }}>
-              <View style={{ padding: 15, paddingTop: 60, flexDirection: 'row', alignItems: 'center', backgroundColor: '#007AFF' }}>
+          {/* DEĞİŞİKLİK: Beyaz View yerine LinearGradient ile geçişli gri arka plan */}
+          <LinearGradient colors={['#4e4e4e', '#1a1a1a']} style={{ flex: 1 }}>
+              
+              {/* Header kısmı: Arka planı temanın en koyu tonu (#1a1a1a) yaptık */}
+              <View style={{ padding: 65, paddingBottom: 15, paddingHorizontal: 20, flexDirection: 'row', alignItems: 'center', backgroundColor: '#1a1a1a', borderBottomWidth: 1, borderBottomColor: '#333' }}>
                   <TouchableOpacity onPress={() => setBlockedModalVisible(false)}>
                       <Ionicons name="chevron-back" size={30} color="#fff" />
                   </TouchableOpacity>
@@ -373,9 +381,10 @@ export default function ProfileScreen() {
                       renderItem={renderBlockedItem}
                   />
               ) : (
-                  <Text style={{ textAlign: 'center', marginTop: 50, color: '#999' }}>Engellenmiş kullanıcı bulunmamaktadır.</Text>
+                  /* "Bulunamadı" yazısını okunabilir gri yaptık */
+                  <Text style={{ textAlign: 'center', marginTop: 50, color: '#ccc' }}>Engellenmiş kullanıcı bulunmamaktadır.</Text>
               )}
-          </View>
+          </LinearGradient>
       </Modal>
 
       {/* --- FULL SCREEN PROFILE IMAGE MODAL --- */}
@@ -392,6 +401,6 @@ export default function ProfileScreen() {
           </View>
       </Modal>
 
-    </View>
+    </LinearGradient>
   );
 }

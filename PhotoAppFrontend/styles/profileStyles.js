@@ -5,15 +5,16 @@ const { width, height } = Dimensions.get('window');
 const profileStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    // Background color is handled by LinearGradient in profile.js
   },
-  // --- HEADER STYLES ---
+  // --- HEADER STYLES (Matched with Home) ---
   headerContainer: {
     width: '100%',
     paddingTop: Platform.OS === 'ios' ? 65 : StatusBar.currentHeight + 25,
     paddingBottom: 15,
     paddingHorizontal: 20,
-    backgroundColor: '#007AFF', // Theme Color
+    // Darkest gray (same as Home header)
+    backgroundColor: '#1a1a1a', 
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between', 
@@ -31,51 +32,66 @@ const profileStyles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    color: '#fff',
-    fontSize: 23,
+    // White text and font size 27 (Matched with Home)
+    color: '#ffffff',
+    fontSize: 27,
     fontWeight: 'bold',
     textAlign: 'center',
     flex: 1, 
-    marginRight: 0, // Balance the back button spacing
+    marginRight: 0, 
   },
 
   // --- PROFILE INFO SECTION ---
   profileInfoContainer: {
     alignItems: 'center',
     marginTop: 30,
-    marginBottom: 20, // Reduced slightly to fit stats
+    marginBottom: 20, 
   },
   largeProfileImage: {
     width: 120,
     height: 120,
     borderRadius: 60,
     borderWidth: 3,
-    borderColor: '#007AFF', 
+    // White border (Matched with Home profile pic style)
+    borderColor: '#ffffff', 
     marginBottom: 15,
   },
   usernameText: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#000',
+    // White text
+    color: '#ffffff',
     marginBottom: 5,
   },
+  editProfileButton: {
+    marginTop: 5,
+    paddingVertical: 8,
+    paddingHorizontal: 20,
+    backgroundColor: '#000000', // Siyah arka plan
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#333',
+    marginBottom: 15, // Butonun altındaki boşluk
+  },
   editProfileText: {
-    fontSize: 16,
-    color: '#007AFF', 
+    color: '#ffffff', // Beyaz yazı
+    fontSize: 14,
     fontWeight: '600',
   },
 
-  // --- NEW: INFO STRIP STYLES ---
+  // --- INFO STRIP STYLES (Stats) ---
   infoStripContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff', 
-    paddingVertical: 10,
+    // Card background color (Matched with Home list items)
+    backgroundColor: '#2C2C2C', 
+    paddingVertical: 15,
     paddingHorizontal: 15,
     marginTop: 15,
     width: '90%', 
     alignSelf: 'center',
+    borderRadius: 12, // Rounded corners added
   },
   infoStripItem: {
     flexDirection: 'row',
@@ -83,18 +99,21 @@ const profileStyles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 14,
-    color: '#000',
+    // Light gray for labels
+    color: '#cccccc',
     fontWeight: '400',
   },
   infoValue: {
     fontSize: 14,
-    color: '#000',
+    // White for values
+    color: '#ffffff',
     fontWeight: 'bold',
+    marginLeft: 5,
   },
   verticalDivider: {
     width: 1,
-    height: '100%',
-    backgroundColor: '#000',
+    height: '60%',
+    backgroundColor: '#555555', // Darker divider
     marginHorizontal: 15,
   },
 
@@ -109,7 +128,8 @@ const profileStyles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    // Dark divider color
+    borderBottomColor: '#444444',
   },
   settingLeft: {
     flexDirection: 'row',
@@ -119,13 +139,16 @@ const profileStyles = StyleSheet.create({
     marginRight: 15,
     width: 24,
     textAlign: 'center',
+    // Icons should be lighter to see on dark bg
+    color: '#dddddd', 
   },
   settingText: {
     fontSize: 16,
-    color: '#333',
+    // White text
+    color: '#ffffff',
   },
   deleteAccountText: {
-    // optional specific style
+    color: '#FF3B30', // Keep red for delete
   },
 
   // --- FULL SCREEN MODAL ---

@@ -25,8 +25,8 @@ const homeStyles = StyleSheet.create({
     zIndex: 1, 
   },
   profileImage: {
-    width: 48, 
-    height: 48,
+    width: 40, 
+    height: 40,
     borderRadius: 19, 
     borderWidth: 2,
     // Item 3: Black border
@@ -39,8 +39,8 @@ const homeStyles = StyleSheet.create({
     fontWeight: 'bold',
   },
   addButton: {
-    width: 48, 
-    height: 48,
+    width: 40, 
+    height: 40,
     borderRadius: 19,
     // Item 5: Black background
     backgroundColor: '#000000',
@@ -72,7 +72,7 @@ const homeStyles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 12,
-    backgroundColor: '#007AFF', 
+    backgroundColor: '#FFFFFF', 
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 15,
@@ -126,7 +126,7 @@ const homeStyles = StyleSheet.create({
   },
   modalContainer: {
     width: '90%',
-    backgroundColor: '#fff',
+    backgroundColor: '#1a1a1a',
     borderRadius: 20,
     paddingVertical: 10,
     elevation: 5,
@@ -144,7 +144,7 @@ const homeStyles = StyleSheet.create({
   tabContainer: {
     flexDirection: 'row',
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: '#000000',
     marginBottom: 20,
   },
   tabButton: {
@@ -153,17 +153,17 @@ const homeStyles = StyleSheet.create({
     alignItems: 'center',
   },
   activeTab: {
-    backgroundColor: '#f5f5f5', 
+    backgroundColor: '#101010', 
     borderBottomWidth: 3,
-    borderBottomColor: '#007AFF',
+    borderBottomColor: '#000000',
   },
   tabText: {
     fontSize: 16,
-    color: '#666',
+    color: '#ffffff',
     fontWeight: '500',
   },
   activeTabText: {
-    color: '#007AFF',
+    color: '#ffffff',
     fontWeight: 'bold',
   },
   modalContent: {
@@ -195,14 +195,14 @@ const homeStyles = StyleSheet.create({
     marginBottom: 10,
   },
   selectPhotoText: {
-    color: '#007AFF',
+    color: '#FFFFFF',
     fontSize: 14,
   },
   label: {
     alignSelf: 'flex-start',
     fontWeight: 'bold',
     marginBottom: 5,
-    color: '#333',
+    color: '#ffffff',
     marginLeft: 2,
   },
   input: {
@@ -215,7 +215,7 @@ const homeStyles = StyleSheet.create({
     backgroundColor: '#fafafa',
   },
   actionButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#000000',
     paddingVertical: 12,
     borderRadius: 25,
     width: '100%',

@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import API_URL from '../config';
 // Re-using edit profile styles for consistent look
 import editProfileStyles from '../styles/editProfileStyles';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function ChangePasswordScreen() {
   const router = useRouter();
@@ -77,8 +78,11 @@ export default function ChangePasswordScreen() {
   };
 
   return (
-    <View style={editProfileStyles.container}>
-      <StatusBar backgroundColor="#007AFF" barStyle="light-content" />
+    <LinearGradient 
+      colors={['#4e4e4e', '#1a1a1a']} 
+      style={editProfileStyles.container}
+    >
+      <StatusBar backgroundColor="#1a1a1a" barStyle="light-content" />
 
       {/* HEADER */}
       <View style={editProfileStyles.headerContainer}>
@@ -147,6 +151,6 @@ export default function ChangePasswordScreen() {
             </View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </View>
+    </LinearGradient>
   );
 }
