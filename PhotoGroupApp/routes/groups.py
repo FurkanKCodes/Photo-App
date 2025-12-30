@@ -582,24 +582,6 @@ def get_group_details():
 def uploaded_file(filename):
     return send_from_directory(current_app.config['UPLOAD_FOLDER'], filename)
 
-@groups_bp.route('/my-groups', methods=['GET'])
-def get_user_groups():
-    user_id = request.args.get('user_id')
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
-        sql = "SELECT g.id, g.group_name, g.group_code, g.picture, gm.is_admin FROM groups_table g JOIN groups_members gm ON g.id = gm.group_id WHERE gm.user_id = %s ORDER BY gm.joined_at DESC"
-        cursor.execute(sql, (user_id,))
-        groups = cursor.fetchall()
-        for g in groups:
-            if g['picture']:
-                g['picture_url'] = url_for('groups.uploaded_file', filename=g['picture'], _external=True)
-                g['thumbnail_url'] = url_for('groups.uploaded_file', filename=f"thumb_{g['picture']}", _external=True)
-            else: g['picture_url'] = None; g['thumbnail_url'] = None
-        cursor.close(); conn.close()
-        return jsonify(groups), 200
-    except Exception as e: return jsonify({"error": str(e)}), 500
-
 @groups_bp.route('/get-group-members', methods=['GET'])
 def get_group_members():
     group_id = request.args.get('group_id')
@@ -636,4 +618,52 @@ def get_group_members():
             
         cursor.close(); conn.close()
         return jsonify(members), 200
+    except Exception as e: return jsonify({"error": str(e)}), 500
+
+
+# ==========================================
+# GET USER GROUPS (UPDATED: Returns Members)
+# ==========================================
+@groups_bp.route('/my-groups', methods=['GET'])
+def get_user_groups():
+    user_id = request.args.get('user_id')
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        
+        # 1. Fetch Groups
+        sql = """
+            SELECT g.id, g.group_name, g.group_code, g.picture, gm.is_admin 
+            FROM groups_table g 
+            JOIN groups_members gm ON g.id = gm.group_id 
+            WHERE gm.user_id = %s 
+            ORDER BY gm.joined_at DESC
+        """
+        cursor.execute(sql, (user_id,))
+        groups = cursor.fetchall()
+        
+        # 2. Fetch Members for each group to display in the list
+        for g in groups:
+            # Image URL logic
+            if g['picture']:
+                g['picture_url'] = url_for('groups.uploaded_file', filename=g['picture'], _external=True)
+                g['thumbnail_url'] = url_for('groups.uploaded_file', filename=f"thumb_{g['picture']}", _external=True)
+            else: 
+                g['picture_url'] = None
+                g['thumbnail_url'] = None
+            
+            # --- NEW: Fetch Members for this group ---
+            # We fetch ID and Username to sort them in Frontend
+            member_sql = """
+                SELECT u.id, u.username 
+                FROM users u 
+                JOIN groups_members gm ON u.id = gm.user_id 
+                WHERE gm.group_id = %s
+            """
+            cursor.execute(member_sql, (g['id'],))
+            g['members'] = cursor.fetchall()
+            # -----------------------------------------
+
+        cursor.close(); conn.close()
+        return jsonify(groups), 200
     except Exception as e: return jsonify({"error": str(e)}), 500

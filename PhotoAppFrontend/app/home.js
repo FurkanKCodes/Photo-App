@@ -41,6 +41,9 @@ export default function HomeScreen() {
   const [isImageModalVisible, setImageModalVisible] = useState(false);
   const [selectedGroupImage, setSelectedGroupImage] = useState(null);
 
+  // Search State
+  const [searchQuery, setSearchQuery] = useState('');
+
   // --- INTERNET WARM-UP ---
   // Sayfa açıldığında NetInfo'yu bir kez tetikliyoruz ki ilk tıklamada hazır olsun.
   useEffect(() => {
@@ -288,40 +291,86 @@ export default function HomeScreen() {
     </View>
   );
 
-  // --- LIST ITEM RENDERER ---
+  // --- LIST ITEM RENDERER (UPDATED) ---
   const renderGroupItem = ({ item }) => {
-    // Logic: Use Thumbnail for Grid, Original for Full Screen
     const thumbUrl = item.thumbnail_url || item.picture_url;
     const originalUrl = item.picture_url;
+
+    // --- MEMBER SORTING & FORMATTING LOGIC ---
+    let sortedMembers = [];
+    if (item.members) {
+        // 1. Separate "You" and "Others"
+        const me = item.members.find(m => m.id.toString() === userId.toString());
+        const others = item.members.filter(m => m.id.toString() !== userId.toString());
+        
+        // 2. Sort others alphabetically
+        others.sort((a, b) => a.username.localeCompare(b.username));
+
+        // 3. Combine: [Me, ...Others]
+        if (me) sortedMembers.push({ ...me, displayName: "Siz" }); // Override name for "You"
+        sortedMembers = [...sortedMembers, ...others];
+    }
+
+    // Helper to truncate name: "AhmetAli" -> "AhmetA..."
+    const formatName = (name) => {
+        // Check if user is "Siz", keep it as is
+        if (name === "Siz") return name;
+        
+        if (name.length > 6) {
+            return name.substring(0, 6) + '...';
+        }
+        return name;
+    };
+    // -----------------------------------------
 
     return (
       <View style={homeStyles.groupCard}>
         
-        {/* Left: Clickable Image (Opens Modal) */}
-        <TouchableOpacity onPress={() => handleImagePress(originalUrl)}>
-            {thumbUrl ? (
-                <Image source={{ uri: thumbUrl }} style={homeStyles.groupImage} />
-            ) : (
-                <View style={homeStyles.groupIconPlaceholder}>
-                    <Ionicons name="people" size={24} color="#000000" />
+        {/* --- TOP ROW: IMAGE, NAME, CAMERA --- */}
+        <View style={homeStyles.cardHeader}>
+            {/* Left: Clickable Image */}
+            <TouchableOpacity onPress={() => handleImagePress(originalUrl)}>
+                {thumbUrl ? (
+                    <Image source={{ uri: thumbUrl }} style={homeStyles.groupImage} />
+                ) : (
+                    <View style={homeStyles.groupIconPlaceholder}>
+                        <Ionicons name="people" size={24} color="#000000" />
+                    </View>
+                )}
+            </TouchableOpacity>
+            
+            {/* Center: Clickable Info */}
+            <TouchableOpacity 
+                style={{ flex: 1, justifyContent: 'center', paddingHorizontal: 10 }} 
+                onPress={() => router.push({ pathname: '/group-details', params: { groupId: item.id, userId: userId } })}
+            >
+                <View style={homeStyles.groupInfo}>
+                    <Text style={homeStyles.groupName}>{item.group_name}</Text>
                 </View>
-            )}
-        </TouchableOpacity>
-        
-        {/* Center: Clickable Info (Navigates to Details) */}
-        <TouchableOpacity 
-            style={{ flex: 1, justifyContent: 'center', paddingHorizontal: 10 }} 
-            onPress={() => router.push({ pathname: '/group-details', params: { groupId: item.id, userId: userId } })}
-        >
-            <View style={homeStyles.groupInfo}>
-                <Text style={homeStyles.groupName}>{item.group_name}</Text>
-            </View>
-        </TouchableOpacity>
+            </TouchableOpacity>
 
-        {/* Right: Camera Icon */}
-        <TouchableOpacity style={{ padding: 5 }} onPress={() => handleCameraAction(item.id)}>
-            <Ionicons name="camera-outline" size={30} color="#ffffff" />
-        </TouchableOpacity>
+            {/* Right: Camera Icon */}
+            <TouchableOpacity style={{ padding: 5 }} onPress={() => handleCameraAction(item.id)}>
+                <Ionicons name="camera-outline" size={30} color="#ffffff" />
+            </TouchableOpacity>
+        </View>
+
+        {/* --- BOTTOM ROW: MEMBER LIST (SCROLLABLE) --- */}
+        <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            style={homeStyles.memberListContainer}
+            keyboardShouldPersistTaps="handled"
+        >
+            {sortedMembers.map((member) => (
+                <View key={member.id} style={homeStyles.memberPill}>
+                    <Text style={homeStyles.memberPillText}>
+                        {formatName(member.displayName || member.username)}
+                    </Text>
+                </View>
+            ))}
+        </ScrollView>
+
       </View>
     );
   };
@@ -329,6 +378,25 @@ export default function HomeScreen() {
   if (!userId) {
       return <ActivityIndicator size="large" style={{flex: 1}} />;
   }
+
+
+  // --- HELPER: FILTER & SORT GROUPS ---
+  // Filters groups starting with the query (case-insensitive) and sorts alphabetically
+  const getFilteredGroups = () => {
+    if (!groups) return [];
+    
+    // 1. Filter Logic: Matches "Starts With" pattern (SQL: LIKE 'query%')
+    let filtered = groups.filter(group => 
+      group.group_name.toLowerCase().startsWith(searchQuery.toLowerCase())
+    );
+
+    // 2. Sort Logic: Alphabetical (A-Z)
+    filtered.sort((a, b) => a.group_name.localeCompare(b.group_name));
+
+    return filtered;
+  };
+
+  const filteredData = getFilteredGroups();
 
   return (
     <LinearGradient 
@@ -338,6 +406,30 @@ export default function HomeScreen() {
       {/* StatusBar rengini de temaya uydurmak istersen değiştirebilirsin */}
       <StatusBar backgroundColor="#1a1a1a" barStyle="light-content" />
       <CustomHeader />
+
+      {/* --- SEARCH BAR SECTION --- */}
+      <View style={homeStyles.searchContainer}>
+        {/* Left: Black Search Icon */}
+        <Ionicons name="search" size={20} color="black" style={homeStyles.searchIcon} />
+        
+        {/* Input Field */}
+        <TextInput
+          style={homeStyles.searchInput}
+          placeholder="Ara"
+          placeholderTextColor="#666" // Matching gray placeholder
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+
+        {/* Right: Clear Button (Visible only when typing) */}
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery('')} style={homeStyles.clearButton}>
+            <Ionicons name="close" size={14} color="black" />
+          </TouchableOpacity>
+        )}
+      </View>
 
       {/* --- CREATE/JOIN MODAL (With Keyboard Avoidance) --- */}
       <Modal animationType="slide" transparent={true} visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
@@ -462,16 +554,24 @@ export default function HomeScreen() {
           <ActivityIndicator size="large" color="#FFFFFF" style={{ marginTop: 50 }} />
         ) : (
           <FlatList
-            data={groups}
+            data={filteredData}
             keyExtractor={(item) => item.id.toString()}
             renderItem={renderGroupItem}
             contentContainerStyle={homeStyles.listContainer}
             ListEmptyComponent={
-              <View style={homeStyles.emptyContainer}>
-                <Ionicons name="images-outline" size={64} color="#ccc" />
-                <Text style={homeStyles.emptyText}>Grup bulunamadı.</Text>
-                <Text style={homeStyles.emptySubText}>Sağ üstteki + butonuna basarak başlayın.</Text>
-              </View>
+              searchQuery.length > 0 ? (
+                // SEARCH NO RESULT STATE
+                <View style={{ marginTop: 50 }}>
+                   <Text style={homeStyles.noResultText}>Sonuç Yok</Text>
+                </View>
+              ) : (
+                // DEFAULT EMPTY STATE (No groups at all)
+                <View style={homeStyles.emptyContainer}>
+                  <Ionicons name="images-outline" size={64} color="#ccc" />
+                  <Text style={homeStyles.emptyText}>Grup bulunamadı.</Text>
+                  <Text style={homeStyles.emptySubText}>Sağ üstteki + butonuna basarak başlayın.</Text>
+                </View>
+              )
             }
           />
         )}

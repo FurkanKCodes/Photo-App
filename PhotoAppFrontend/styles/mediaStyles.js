@@ -74,7 +74,7 @@ const mediaStyles = StyleSheet.create({
     top: 50, 
     right: 20, 
     // Accent color remains Blue for visibility or can be Black
-    backgroundColor: '#007AFF',
+    backgroundColor: '#000',
     paddingVertical: 6,
     paddingHorizontal: 16,
     borderRadius: 20,

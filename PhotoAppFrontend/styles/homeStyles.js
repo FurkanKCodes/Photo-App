@@ -56,9 +56,7 @@ const homeStyles = StyleSheet.create({
   },
   // Group Card Styles
   groupCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    // Item 6: Slightly lighter gray than header
+    flexDirection: 'column', 
     backgroundColor: '#2C2C2C',
     padding: 15,
     borderRadius: 12,
@@ -67,6 +65,11 @@ const homeStyles = StyleSheet.create({
     shadowColor: '#000',
     shadowOpacity: 0.1,
     shadowRadius: 4,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
   },
   groupIconPlaceholder: {
     width: 50,
@@ -82,7 +85,6 @@ const homeStyles = StyleSheet.create({
     height: 50,
     borderRadius: 12,
     marginRight: 15,
-    // Item 7: Black border
     borderWidth: 2,
     borderColor: '#ffffff',
     backgroundColor: '#ddd',
@@ -92,10 +94,27 @@ const homeStyles = StyleSheet.create({
     justifyContent: 'center', 
   },
   groupName: {
-    // Item 8: White text and font size 22
     fontSize: 22,
     fontWeight: 'bold',
     color: '#ffffff',
+  },
+  memberListContainer: {
+    marginTop: 10, // Space between header and members
+    width: '100%',
+  },
+  memberPill: {
+    backgroundColor: '#E0E0E0', 
+    borderRadius: 8,      // ESKİSİ 15'ti. 8 yaparak daha köşeli (hafif yuvarlak) yaptık.
+    paddingVertical: 7,   // ESKİSİ 5'ti. Yüksekliği artırdık.
+    paddingHorizontal: 12,// ESKİSİ 10'du. Genişliği artırdık.
+    marginRight: 8, 
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  memberPillText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#000000', // Black text for contrast
   },
   // Empty State Styles
   emptyContainer: {
@@ -225,6 +244,46 @@ const homeStyles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+
+  // --- SEARCH BAR STYLES ---
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#E0E0E0', // Light Gray Background
+    borderRadius: 20, // Soft edges
+    marginHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 5,
+    paddingHorizontal: 15,
+    height: 45, // Slim bar
+    borderWidth: 1,
+    borderColor: '#ccc',
+  },
+  searchIcon: {
+    marginRight: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#000', // Black text
+    height: '100%',
+  },
+  clearButton: {
+    backgroundColor: '#999', // Gray circle
+    borderRadius: 10, // Make it circular (half of width/height)
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 10,
+  },
+  noResultText: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#ffffff', // White text
+    textAlign: 'center',
+    marginTop: 50,
   },
 });
 
