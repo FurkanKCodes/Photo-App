@@ -9,9 +9,6 @@
       "distribution": "internal",
       "ios": {
         "resourceClass": "m-medium"
-      },
-      "env": {
-        "EAS_BUILD_NPM_INSTALL_ARGS": "install"
       }
     },
     "preview": {
