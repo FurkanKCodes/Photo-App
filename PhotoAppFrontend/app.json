@@ -46,6 +46,7 @@
           }
         }
       ],
+      "./plugins/withAllowNonModularIncludes",
       [
         "expo-build-properties",
         {
