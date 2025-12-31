@@ -1,20 +1,41 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, Text, FlatList, TouchableOpacity, Modal, Image, Alert, 
-  ActivityIndicator, StatusBar, TouchableWithoutFeedback, ScrollView, TextInput, KeyboardAvoidingView, Platform 
+  ActivityIndicator, StatusBar, TouchableWithoutFeedback, ScrollView, TextInput, KeyboardAvoidingView, Platform, PanResponder, Dimensions 
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Video, ResizeMode } from 'expo-av'; 
 import API_URL from '../config';
 import adminPanelStyles from '../styles/adminPanelStyles';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function AdminPanel() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const currentUserId = params.userId;
 
-  // --- 2FA STATES (YENİ) ---
+  const { width } = Dimensions.get('window'); // Ekran genişliği
+
+  // --- iOS SWIPE BACK (Right to Left) ---
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        return (
+          Platform.OS === 'ios' && 
+          gestureState.moveX > (width - 50) && 
+          gestureState.dx < -10                
+        );
+      },
+      onPanResponderRelease: (evt, gestureState) => {
+        if (gestureState.dx < -50) {
+          router.back();
+        }
+      },
+    })
+  ).current;
+
+  // --- 2FA STATES () ---
   const [isVerified, setIsVerified] = useState(false);
   const [verificationCode, setVerificationCode] = useState('');
   const [verifying, setVerifying] = useState(false);
@@ -239,8 +260,26 @@ export default function AdminPanel() {
   // Eğer doğrulama yapılmadıysa (isVerified = false), bu ekranı göster
   if (!isVerified) {
       return (
-        <View style={adminPanelStyles.container}>
-            <StatusBar backgroundColor="#FFF" barStyle="light-content" />
+        <LinearGradient 
+            colors={['#4e4e4e', '#1a1a1a']} 
+            style={adminPanelStyles.container}
+        >
+            <StatusBar backgroundColor="#1a1a1a" barStyle="light-content" />
+
+            {Platform.OS === 'ios' && (
+                <View
+                    {...panResponder.panHandlers}
+                    style={{
+                        position: 'absolute',
+                        right: 0,   // SAĞA YAPIŞIK
+                        top: 0,
+                        bottom: 0,
+                        width: 50,  // Dokunma alanı genişliği
+                        zIndex: 9999, 
+                        backgroundColor: 'transparent'
+                    }}
+                />
+            )}
             
             {/* Simple Header */}
             <View style={adminPanelStyles.headerContainer}>
@@ -283,14 +322,32 @@ export default function AdminPanel() {
                     </TouchableOpacity>
                 </KeyboardAvoidingView>
             )}
-        </View>
+        </LinearGradient>
       );
   }
 
-  // --- MAIN ADMIN PANEL CONTENT (SADECE DOĞRULANINCA GÖRÜNÜR) ---
+  // --- MAIN ADMIN PANEL CONTENT ---
   return (
-    <View style={adminPanelStyles.container}>
-      <StatusBar backgroundColor="#FFF" barStyle="light-content" />
+    <LinearGradient 
+      colors={['#4e4e4e', '#1a1a1a']} 
+      style={adminPanelStyles.container}
+    >
+      <StatusBar backgroundColor="#1a1a1a" barStyle="light-content" />
+
+      {Platform.OS === 'ios' && (
+        <View
+          {...panResponder.panHandlers}
+          style={{
+            position: 'absolute',
+            right: 0,   
+            top: 0,
+            bottom: 0,
+            width: 50,  
+            zIndex: 9999, 
+            backgroundColor: 'transparent'
+          }}
+        />
+      )}
       
       <View style={adminPanelStyles.headerContainer}>
           <TouchableOpacity style={adminPanelStyles.backButton} onPress={() => router.back()}>
@@ -410,6 +467,6 @@ export default function AdminPanel() {
             </View>
         </TouchableWithoutFeedback>
       </Modal>
-    </View>
+    </LinearGradient>
   );
 }

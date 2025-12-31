@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, Image, TouchableOpacity, StatusBar, Alert, ScrollView, ActivityIndicator, Modal, FlatList, Dimensions } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { View, Text, Image, TouchableOpacity, StatusBar, Alert, ScrollView, ActivityIndicator, Modal, FlatList, Dimensions, PanResponder, Platform} from 'react-native';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -10,6 +10,25 @@ import { LinearGradient } from 'expo-linear-gradient';
 const defaultProfileImage = require('../assets/no-pic.jpg');
 
 export default function ProfileScreen() {
+  const { width } = Dimensions.get('window'); // Ekran genişliği
+
+  // --- iOS SWIPE BACK (Right to Left) ---
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        return (
+          Platform.OS === 'ios' && 
+          gestureState.moveX > (width - 50) && 
+          gestureState.dx < -10       
+        );
+      },
+      onPanResponderRelease: (evt, gestureState) => {
+        if (gestureState.dx < -50) {
+          router.back();
+        }
+      },
+    })
+  ).current;
   const router = useRouter();
   const params = useLocalSearchParams();
   const userId = params.userId;
@@ -250,6 +269,21 @@ export default function ProfileScreen() {
       style={profileStyles.container}
     >
       <StatusBar backgroundColor="#1a1a1a" barStyle="light-content" />
+
+      {Platform.OS === 'ios' && (
+        <View
+          {...panResponder.panHandlers}
+          style={{
+            position: 'absolute',
+            right: 0,   
+            top: 0,
+            bottom: 0,
+            width: 50,  
+            zIndex: 9999, 
+            backgroundColor: 'transparent'
+          }}
+        />
+      )}
 
       {/* --- HEADER --- */}
       <View style={profileStyles.headerContainer}>

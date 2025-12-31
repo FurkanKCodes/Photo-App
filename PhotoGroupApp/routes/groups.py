@@ -532,6 +532,16 @@ def leave_group():
 
         cursor.execute("DELETE FROM groups_members WHERE user_id=%s AND group_id=%s", (user_id, group_id))
 
+        cursor.execute("SELECT count(*) as count FROM groups_members WHERE group_id=%s", (group_id,))
+        res = cursor.fetchone()
+        
+        if res['count'] == 0:
+            cursor.execute("DELETE FROM groups_table WHERE id=%s", (group_id,))
+            
+            conn.commit()
+            cursor.close(); conn.close()
+            return jsonify({"message": "Left group and group deleted (empty)"}), 200
+        
         if was_admin:
             cursor.execute("SELECT user_id FROM groups_members WHERE group_id=%s AND is_admin=1", (group_id,))
             remaining_admin = cursor.fetchone()

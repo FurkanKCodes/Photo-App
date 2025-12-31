@@ -6,7 +6,6 @@ const adminPanelStyles = StyleSheet.create({
   container: {
     flex: 1,
     // Dark Theme Background
-    backgroundColor: '#333333',
   },
   // --- HEADER (Matched with Home & Profile) ---
   headerContainer: {

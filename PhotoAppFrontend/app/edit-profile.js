@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   View, Text, Image, TouchableOpacity, TextInput, 
   StatusBar, Alert, ScrollView, ActivityIndicator, 
-  KeyboardAvoidingView, Platform 
+  KeyboardAvoidingView, Platform, PanResponder, Dimensions 
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,6 +17,26 @@ export default function EditProfileScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const userId = params.userId;
+
+  const { width } = Dimensions.get('window'); // Ekran genişliği
+
+  // --- iOS SWIPE BACK (Right to Left) ---
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        return (
+          Platform.OS === 'ios' && 
+          gestureState.moveX > (width - 50) && 
+          gestureState.dx < -10                
+        );
+      },
+      onPanResponderRelease: (evt, gestureState) => {
+        if (gestureState.dx < -50) {
+          router.back();
+        }
+      },
+    })
+  ).current;
 
   // State Management
   const [initialData, setInitialData] = useState({});
@@ -192,6 +212,21 @@ export default function EditProfileScreen() {
       style={editProfileStyles.container}
     >
       <StatusBar backgroundColor="#1a1a1a" barStyle="light-content" />
+
+      {Platform.OS === 'ios' && (
+        <View
+          {...panResponder.panHandlers}
+          style={{
+            position: 'absolute',
+            right: 0,   
+            top: 0,
+            bottom: 0,
+            width: 50,  
+            zIndex: 9999, 
+            backgroundColor: 'transparent'
+          }}
+        />
+      )}
 
       {/* HEADER */}
       <View style={editProfileStyles.headerContainer}>
