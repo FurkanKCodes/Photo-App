@@ -282,7 +282,7 @@ export default function HomeScreen() {
         />
       </TouchableOpacity>
       
-      <Text style={homeStyles.headerTitle}>İsimÇokZor</Text>
+      <Text style={homeStyles.headerTitle}>AllSent</Text>
       
       {/* Add Button */}
       <TouchableOpacity style={homeStyles.addButton} onPress={() => setModalVisible(true)}>

@@ -161,7 +161,7 @@ def upload_photo():
             conn.commit()
             # -------------------------------------------------
 
-            # ... (NOTIFICATION LOGIC AYNEN KALIYOR) ...
+            # ... (NOTIFICATION LOGIC) ...
             # Get Group Info & Uploader Info
             cursor.execute("SELECT group_name FROM groups_table WHERE id = %s", (group_id,))
             group_row = cursor.fetchone()
@@ -180,6 +180,7 @@ def upload_photo():
                     WHERE gm.group_id = %s 
                     AND u.id != %s 
                     AND u.push_token IS NOT NULL
+                    AND gm.notifications = 1
                 """
                 cursor.execute(sql_members, (group_id, user_id))
                 members = cursor.fetchall()

@@ -235,7 +235,10 @@ def join_group():
             SELECT u.push_token 
             FROM users u
             JOIN groups_members gm ON u.id = gm.user_id
-            WHERE gm.group_id = %s AND gm.is_admin = 1 AND u.push_token IS NOT NULL
+            WHERE gm.group_id = %s 
+            AND gm.is_admin = 1 
+            AND u.push_token IS NOT NULL
+            AND gm.notifications = 1
         """
         cursor.execute(sql_admins, (group_id,))
         admins = cursor.fetchall()
@@ -607,6 +610,7 @@ def get_group_members():
                 u.username, 
                 u.profile_image, 
                 gm.is_admin, 
+                gm.notifications,
                 CASE WHEN u.id = %s THEN 0 ELSE 1 END as sort_order,
                 CASE WHEN EXISTS (SELECT 1 FROM blocked_users WHERE blocker_id = %s AND blocked_id = u.id) THEN 1 ELSE 0 END as is_blocked_by_me
             FROM groups_members gm 
@@ -669,11 +673,51 @@ def get_user_groups():
                 FROM users u 
                 JOIN groups_members gm ON u.id = gm.user_id 
                 WHERE gm.group_id = %s
+                AND u.id NOT IN (
+                    SELECT blocker_id FROM blocked_users WHERE blocked_id = %s
+                )
             """
-            cursor.execute(member_sql, (g['id'],))
+            cursor.execute(member_sql, (g['id'], user_id))
             g['members'] = cursor.fetchall()
             # -----------------------------------------
 
         cursor.close(); conn.close()
         return jsonify(groups), 200
     except Exception as e: return jsonify({"error": str(e)}), 500
+
+# ==========================================
+# TOGGLE NOTIFICATIONS
+# ==========================================
+@groups_bp.route('/toggle-notifications', methods=['POST'])
+def toggle_notifications():
+    data = request.json
+    user_id = data.get('user_id')
+    group_id = data.get('group_id')
+
+    if not user_id or not group_id:
+        return jsonify({"error": "Missing fields"}), 400
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Toggle notification status (1 -> 0 or 0 -> 1)
+        sql = """
+            UPDATE groups_members 
+            SET notifications = CASE WHEN notifications = 1 THEN 0 ELSE 1 END
+            WHERE user_id = %s AND group_id = %s
+        """
+        cursor.execute(sql, (user_id, group_id))
+        conn.commit()
+
+        # Fetch new status to return to frontend
+        cursor.execute("SELECT notifications FROM groups_members WHERE user_id = %s AND group_id = %s", (user_id, group_id))
+        row = cursor.fetchone()
+        new_status = row[0] if row else 1
+
+        cursor.close(); conn.close()
+        return jsonify({"message": "Notification status updated", "notifications": new_status}), 200
+
+    except Exception as e:
+        print(f"Toggle notification error: {e}")
+        return jsonify({"error": str(e)}), 500

@@ -334,7 +334,7 @@ const groupDetailsStyles = StyleSheet.create({
   // --- LEAVE & DELETE BUTTON ---
   leaveButton: {
     flexDirection: 'row',
-    backgroundColor: '#FF3B30', // Can remain Red
+    backgroundColor: '#000', // Can remain Red
     marginTop: 20,
     marginBottom: 40, // Bottom margin
     paddingVertical: 12,
@@ -357,6 +357,62 @@ const groupDetailsStyles = StyleSheet.create({
     borderRadius: 15,
     borderWidth: 1,
     borderColor: '#333',
+  },
+  
+  // --- BOTTOM ACTION AREA ---
+  bottomContainer: {
+    paddingHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 50,
+  },
+  rowButtons: {
+    flexDirection: 'row', // Side-by-side layout
+    justifyContent: 'space-between',
+    gap: 10, // Gap between buttons
+    marginBottom: 15, // Space between row and delete button
+  },
+  
+  // Base Action Button Shape (Rounded and padded)
+  baseActionButton: {
+    flex: 1, // Equal width for side-by-side buttons
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 25, // Oval shape matching your design
+  },
+
+  // Notification Button Colors
+  btnNotificationOn: {
+    backgroundColor: '#E0E0E0', // Light Gray
+  },
+  btnNotificationOff: {
+    backgroundColor: '#9E9E9E', // Darker Gray (When disabled)
+  },
+
+  // Delete Group Button (Bottom Center)
+  deleteButtonCentered: {
+    flexDirection: 'row',
+    backgroundColor: '#FF3B30', // Red
+    paddingVertical: 12,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: '100%',
+  },
+
+  // Text Colors
+  textBlack: {
+    color: '#000000',
+    fontWeight: 'bold',
+    marginLeft: 8,
+    fontSize: 14,
+  },
+  textWhite: {
+    color: '#ffffff',
+    fontWeight: 'bold',
+    marginLeft: 8,
+    fontSize: 14,
   },
 });
 

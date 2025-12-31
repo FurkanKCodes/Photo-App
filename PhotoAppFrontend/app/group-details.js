@@ -41,6 +41,9 @@ export default function GroupDetailsScreen() {
   // MENU POPUP STATE
   const [activeMenuMemberId, setActiveMenuMemberId] = useState(null);
 
+  // Notification State
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+
   // --- FETCH DATA ---
   const fetchData = async () => {
     try {
@@ -54,6 +57,7 @@ export default function GroupDetailsScreen() {
         setMembers(membersData);
         const currentUser = membersData.find(m => m.id.toString() === userId.toString());
         setIsAdmin(currentUser?.is_admin === 1);
+        setNotificationsEnabled(currentUser?.notifications === 1);
       }
 
       const reqRes = await fetch(`${API_URL}/get-group-requests?group_id=${groupId}`, { headers: { 'ngrok-skip-browser-warning': 'true' }});
@@ -193,6 +197,21 @@ export default function GroupDetailsScreen() {
               }
           }
       ]);
+  };
+
+  const handleToggleNotifications = async () => {
+    try {
+        const res = await fetch(`${API_URL}/toggle-notifications`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
+            body: JSON.stringify({ user_id: userId, group_id: groupId })
+        });
+        const data = await res.json();
+        if (res.ok) {
+            // Update state based on new status from backend
+            setNotificationsEnabled(data.notifications === 1);
+        }
+    } catch (e) { console.error(e); }
   };
 
   // --- DELETE GROUP (NEW) ---
@@ -434,26 +453,51 @@ export default function GroupDetailsScreen() {
             <View>{requests.length > 0 ? (requests.map(req => renderRequestItem(req))) : (<Text style={groupDetailsStyles.emptyText}>Şuan bir istek bulunmamaktadır</Text>)}</View>
 
             {/* 5. LEAVE & DELETE BUTTONS (Side by Side) */}
-            <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 30, paddingHorizontal: 20 }}>
-                {/* Delete Button (Admin Only) */}
+            {/* 5. ACTION BUTTONS (Notifications, Leave, Delete) */}
+            <View style={groupDetailsStyles.bottomContainer}>
+                
+                {/* TOP ROW: Notification & Leave Buttons Side by Side */}
+                <View style={groupDetailsStyles.rowButtons}>
+                    
+                    {/* NOTIFICATION BUTTON */}
+                    <TouchableOpacity 
+                        style={[
+                            groupDetailsStyles.baseActionButton, 
+                            notificationsEnabled ? groupDetailsStyles.btnNotificationOn : groupDetailsStyles.btnNotificationOff
+                        ]} 
+                        onPress={handleToggleNotifications}
+                    >
+                        <Ionicons 
+                            name={notificationsEnabled ? "notifications" : "notifications-off"} 
+                            size={20} 
+                            color="#000" 
+                        />
+                        <Text style={groupDetailsStyles.textBlack}>
+                            {notificationsEnabled ? "Bildirimler Açık" : "Bildirimler Kapalı"}
+                        </Text>
+                    </TouchableOpacity>
+
+                    {/* LEAVE GROUP BUTTON */}
+                    {/* Using baseActionButton for shape, keeping manual black background to match existing style */}
+                    <TouchableOpacity 
+                        style={[groupDetailsStyles.baseActionButton, { backgroundColor: '#000000' }]} 
+                        onPress={handleLeaveGroup}
+                    >
+                        <Ionicons name="log-out-outline" size={20} color="#fff" />
+                        <Text style={groupDetailsStyles.textWhite}>Ayrıl</Text>
+                    </TouchableOpacity>
+                </View>
+
+                {/* BOTTOM ROW: Delete Group (Admin Only & Centered) */}
                 {isAdmin && (
                     <TouchableOpacity 
-                        style={[groupDetailsStyles.leaveButton, { backgroundColor: '#333', marginRight: 10, flex: 1 }]} 
+                        style={groupDetailsStyles.deleteButtonCentered} 
                         onPress={handleDeleteGroup}
                     >
-                        <Ionicons name="trash-outline" size={24} color="#fff" />
-                        <Text style={groupDetailsStyles.leaveText}>Grubu Sil</Text>
+                        <Ionicons name="trash-outline" size={20} color="#fff" />
+                        <Text style={groupDetailsStyles.textWhite}>Grubu Sil</Text>
                     </TouchableOpacity>
                 )}
-
-                {/* Leave Button */}
-                <TouchableOpacity 
-                    style={[groupDetailsStyles.leaveButton, { flex: 1 }]} 
-                    onPress={handleLeaveGroup}
-                >
-                    <Ionicons name="log-out-outline" size={24} color="#fff" />
-                    <Text style={groupDetailsStyles.leaveText}>Gruptan Ayrıl</Text>
-                </TouchableOpacity>
             </View>
           </ScrollView>
       )}

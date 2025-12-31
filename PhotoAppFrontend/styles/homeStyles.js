@@ -57,12 +57,12 @@ const homeStyles = StyleSheet.create({
   // Group Card Styles
   groupCard: {
     flexDirection: 'column', 
-    backgroundColor: '#2C2C2C',
+    backgroundColor: '#1e1e1e',
     padding: 15,
     borderRadius: 12,
     marginBottom: 12,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: '#fff',
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
