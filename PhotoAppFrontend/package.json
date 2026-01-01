@@ -64,6 +64,6 @@
   "private": true,
   "overrides": {
     "react-native-reanimated": "3.16.1",
-    "react-native-worklets-core": "0.5.1"
+    "react-native-worklets-core": "0.4.0"
   }
 }
