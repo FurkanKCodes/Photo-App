@@ -48,16 +48,7 @@
       ],
       "@react-native-firebase/app",
       "@react-native-firebase/auth",
-      "@react-native-firebase/app-check",
-      [
-        "expo-build-properties",
-        {
-          "ios": {
-            "useFrameworks": "static"
-          }
-        }
-      ],
-      "./plugins/withIosFix"
+      "@react-native-firebase/app-check"
     ],
     "experiments": {
       "typedRoutes": true,
