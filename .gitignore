@@ -16,3 +16,5 @@ PhotoAppFrontend/web-build/
 PhotoAppFrontend/npm-debug.log
 PhotoAppFrontend/yarn-error.log
 PhotoAppFrontend/config.js
+
+PhotoAppFrontend/package-lock.json
